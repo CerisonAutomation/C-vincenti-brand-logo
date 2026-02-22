@@ -10,7 +10,6 @@ export const useListings = (params: Parameters<typeof guestyClient.getListings>[
     queryKey: ['listings', params],
     queryFn: () => guestyClient.getListings(params),
     staleTime: 5 * 60 * 1000,
-    enabled: !!import.meta.env.VITE_GUESTY_CLIENT_ID,
   });
 };
 
@@ -18,7 +17,7 @@ export const useListing = (id: string | undefined) => {
   return useQuery({
     queryKey: ['listing', id],
     queryFn: () => guestyClient.getListing(id!),
-    enabled: !!id && !!import.meta.env.VITE_GUESTY_CLIENT_ID,
+    enabled: !!id,
   });
 };
 
@@ -27,7 +26,6 @@ export const useCities = () => {
     queryKey: ['cities'],
     queryFn: () => guestyClient.getCities(),
     staleTime: 24 * 60 * 60 * 1000,
-    enabled: !!import.meta.env.VITE_GUESTY_CLIENT_ID,
   });
 };
 
@@ -48,7 +46,7 @@ export const useListingCalendar = (listingId: string | undefined, from: string, 
   return useQuery({
     queryKey: ['calendar', listingId, from, to],
     queryFn: () => guestyClient.getListingCalendar(listingId!, from, to),
-    enabled: !!listingId && !!from && !!to && !!import.meta.env.VITE_GUESTY_CLIENT_ID,
+    enabled: !!listingId && !!from && !!to,
   });
 };
 
@@ -92,7 +90,6 @@ export const useReviews = (params: { listingId?: string; limit?: number; skip?: 
     queryKey: ['reviews', params],
     queryFn: () => guestyClient.getReviews(params),
     staleTime: 30 * 60 * 1000,
-    enabled: !!import.meta.env.VITE_GUESTY_CLIENT_ID,
   });
 };
 
@@ -102,7 +99,7 @@ export const usePayoutSchedule = (listingId: string | undefined, from: string, t
   return useQuery({
     queryKey: ['payouts', listingId, from, to],
     queryFn: () => guestyClient.getPayoutSchedule(listingId!, from, to),
-    enabled: !!listingId && !!from && !!to && !!import.meta.env.VITE_GUESTY_CLIENT_ID,
+    enabled: !!listingId && !!from && !!to,
   });
 };
 
@@ -110,26 +107,25 @@ export const usePaymentProvider = (listingId: string | undefined) => {
   return useQuery({
     queryKey: ['paymentProvider', listingId],
     queryFn: () => guestyClient.getPaymentProvider(listingId!),
-    enabled: !!listingId && !!import.meta.env.VITE_GUESTY_CLIENT_ID,
+    enabled: !!listingId,
   });
 };
 
-export const useMetasearch = () => {
+export const useUpsellFees = (listingId: string | undefined) => {
   return useQuery({
-    queryKey: ['metasearch'],
-    queryFn: () => guestyClient.getMetasearchConfig(),
-    enabled: !!import.meta.env.VITE_GUESTY_CLIENT_ID,
+    queryKey: ['upsellFees', listingId],
+    queryFn: () => guestyClient.getUpsellFees(listingId!),
+    enabled: !!listingId,
   });
 };
 
-// ── Admin Nexus ───────────────────────────────────────────────────────────────
+// ── Admin ─────────────────────────────────────────────────────────────────────
 
 export const useAdminReservations = (params: any = {}) => {
   return useQuery({
     queryKey: ['adminReservations', params],
     queryFn: () => guestyAdminClient.getGlobalReservations(params),
     staleTime: 60 * 1000,
-    enabled: !!import.meta.env.VITE_GUESTY_ADMIN_CLIENT_ID,
   });
 };
 
@@ -138,7 +134,6 @@ export const useAdminMessages = (params: any = {}) => {
     queryKey: ['adminMessages', params],
     queryFn: () => guestyAdminClient.getMessages(params),
     staleTime: 60 * 1000,
-    enabled: !!import.meta.env.VITE_GUESTY_ADMIN_CLIENT_ID,
   });
 };
 
@@ -146,14 +141,6 @@ export const useFolioBalance = (reservationId: string | undefined) => {
   return useQuery({
     queryKey: ['folio', reservationId],
     queryFn: () => guestyAdminClient.getFolioBalance(reservationId!),
-    enabled: !!reservationId && !!import.meta.env.VITE_GUESTY_ADMIN_CLIENT_ID,
-  });
-};
-
-export const useJournalEntries = (params: any = {}) => {
-  return useQuery({
-    queryKey: ['journal', params],
-    queryFn: () => guestyAdminClient.getJournalEntries(params),
-    enabled: !!import.meta.env.VITE_GUESTY_ADMIN_CLIENT_ID,
+    enabled: !!reservationId,
   });
 };

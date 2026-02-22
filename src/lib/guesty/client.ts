@@ -1,90 +1,36 @@
+import { supabase } from '@/integrations/supabase/client';
 import type {
-  AuthResponse, Listing, PropertyType, Amenity, Quote, QuoteRequest,
-  City, CalendarDay, PaymentProvider, Review, UpsellFee, MetasearchConfig,
-  GuestyError, PayoutReconciliation, ReservationResponse
+  Listing, PropertyType, Amenity, Quote, QuoteRequest,
+  City, CalendarDay, PaymentProvider, Review, UpsellFee,
+  GuestyError, ReservationResponse
 } from './types';
 
-const BASE_URL = import.meta.env.VITE_GUESTY_BASE_URL || 'https://booking.guesty.com/api/v1';
-const CLIENT_ID = import.meta.env.VITE_GUESTY_CLIENT_ID;
-const CLIENT_SECRET = import.meta.env.VITE_GUESTY_CLIENT_SECRET;
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const FN_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/guesty-proxy`;
+
+async function request<T>(params: Record<string, string>, method: 'GET' | 'POST' = 'GET', body?: any): Promise<T> {
+  const url = new URL(FN_URL);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+  const opts: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': ANON_KEY,
+    },
+  };
+  if (body && method === 'POST') opts.body = JSON.stringify(body);
+
+  const res = await fetch(url.toString(), opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error_code: 'UNEXPECTED_ERROR', message: 'Request failed' }));
+    throw err;
+  }
+  return res.json() as Promise<T>;
+}
 
 class GuestyClient {
-  private accessToken: string | null = null;
-  private tokenExpiry: number | null = null;
-
-  private async getAccessToken(): Promise<string> {
-    if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
-      return this.accessToken;
-    }
-
-    const response = await fetch(`${BASE_URL}/oauth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        grant_type: 'client_credentials',
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        scope: 'booking_engine',
-      }),
-    });
-
-    if (!response.ok) throw new Error('Failed to authenticate with Guesty');
-
-    const data = await response.json() as AuthResponse;
-    this.accessToken = data.access_token;
-    this.tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-    return this.accessToken;
-  }
-
-  private sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  private async request<T>(endpoint: string, options: RequestInit = {}, retries = 3, backoff = 1000): Promise<T> {
-    const token = await this.getAccessToken();
-
-    try {
-      const response = await fetch(`${BASE_URL}${endpoint}`, {
-        ...options,
-        headers: {
-          ...options.headers,
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.status === 429) {
-        if (retries > 0) {
-          await this.sleep(backoff);
-          return this.request(endpoint, options, retries - 1, backoff * 2);
-        }
-        throw new Error('GUESTY_RATE_LIMIT_EXCEEDED');
-      }
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({
-          error_code: 'UNEXPECTED_ERROR',
-          message: 'API Request failed',
-        })) as GuestyError;
-
-        if (response.status >= 500 && retries > 0) {
-          await this.sleep(backoff);
-          return this.request(endpoint, options, retries - 1, backoff * 2);
-        }
-
-        throw error;
-      }
-
-      return (await response.json()) as T;
-    } catch (err) {
-      if (retries > 0 && !(err as any).error_code) {
-        await this.sleep(backoff);
-        return this.request(endpoint, options, retries - 1, backoff * 2);
-      }
-      throw err;
-    }
-  }
-
   public formatError(error: GuestyError): string {
     const dictionary: Record<string, string> = {
       MIN_NIGHT_MISMATCH: 'This property requires a longer stay. Please check the minimum night requirement.',
@@ -109,78 +55,54 @@ class GuestyClient {
     sort?: 'price' | 'rating';
     [key: string]: any;
   } = {}): Promise<Listing[]> {
-    const queryParams = new URLSearchParams({
-      fields: 'bedArrangements,publishedAddress,taxes',
-      ...params,
-    } as any).toString();
-    return this.request<Listing[]>(`/me/listings?${queryParams}`);
+    const qp = new URLSearchParams(params as any).toString();
+    return request<Listing[]>({ action: 'listings', params: qp });
   }
 
   async getListing(id: string): Promise<Listing> {
-    return this.request<Listing>(`/me/listings/${id}`);
+    return request<Listing>({ action: 'listing', id });
   }
 
   async getCities(): Promise<City[]> {
-    return this.request<City[]>('/me/listings/cities');
+    return request<City[]>({ action: 'cities' });
   }
 
   async getListingCalendar(listingId: string, from: string, to: string): Promise<CalendarDay[]> {
-    return this.request<CalendarDay[]>(`/me/listings/${listingId}/calendar?from=${from}&to=${to}`);
+    return request<CalendarDay[]>({ action: 'calendar', id: listingId, from, to });
   }
 
   async createQuote(params: QuoteRequest): Promise<Quote> {
     const body = { ...params, coupons: params.coupons?.join(',') };
-    return this.request<Quote>('/reservations/quotes', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
+    return request<Quote>({ action: 'quote' }, 'POST', body);
   }
 
   async updateCouponInQuote(quoteId: string, coupon: string): Promise<Quote> {
-    return this.request<Quote>(`/reservations/quotes/${quoteId}/coupons`, {
-      method: 'POST',
-      body: JSON.stringify({ coupon }),
-    });
+    return request<Quote>({ action: 'quote-coupon', quoteId }, 'POST', { coupon });
   }
 
   async createInstantReservation(quoteId: string, guestData: any): Promise<ReservationResponse> {
-    return this.request<ReservationResponse>(`/reservations/quotes/${quoteId}/instant-booking`, {
-      method: 'POST',
-      body: JSON.stringify(guestData),
-    });
+    return request<ReservationResponse>({ action: 'instant-booking', quoteId }, 'POST', guestData);
   }
 
   async createInquiry(listingId: string, inquiryData: any): Promise<ReservationResponse> {
-    return this.request<ReservationResponse>('/me/reservations/inquiry', {
-      method: 'POST',
-      body: JSON.stringify({ listingId, ...inquiryData }),
-    });
+    return request<ReservationResponse>({ action: 'inquiry' }, 'POST', { listingId, ...inquiryData });
   }
 
   async getPayoutSchedule(listingId: string, from: string, to: string): Promise<any> {
-    return this.request<any>(`/me/listings/${listingId}/payouts-schedule?checkin=${from}&checkout=${to}`);
+    return request<any>({ action: 'payout-schedule', id: listingId, from, to });
   }
 
   async getReviews(params: { listingId?: string; limit?: number; skip?: number } = {}): Promise<Review[]> {
-    const query = new URLSearchParams(params as any).toString();
-    return this.request<Review[]>(`/me/reviews${query ? `?${query}` : ''}`);
+    const qp = new URLSearchParams(params as any).toString();
+    return request<Review[]>({ action: 'reviews', params: qp });
   }
 
   async getUpsellFees(listingId: string): Promise<UpsellFee[]> {
-    return this.request<UpsellFee[]>(`/me/listings/${listingId}/upsell-fees`);
-  }
-
-  async getPayoutReconciliation(params: { startDate?: string; endDate?: string; payoutId?: string } = {}): Promise<PayoutReconciliation[]> {
-    const query = new URLSearchParams(params as any).toString();
-    return this.request<PayoutReconciliation[]>(`/payment-transactions/reports/payouts-reconciliation${query ? `?${query}` : ''}`);
-  }
-
-  async getMetasearchConfig(): Promise<MetasearchConfig[]> {
-    return this.request<MetasearchConfig[]>('/me/metasearch');
+    return request<UpsellFee[]>({ action: 'upsell-fees', id: listingId });
   }
 
   async getPaymentProvider(listingId: string): Promise<PaymentProvider> {
-    return this.request<PaymentProvider>(`/me/listings/${listingId}/payment-provider`);
+    return request<PaymentProvider>({ action: 'payment-provider', id: listingId });
   }
 }
 
