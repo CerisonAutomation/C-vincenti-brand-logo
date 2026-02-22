@@ -1,0 +1,450 @@
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, ChevronRight, ChevronLeft, Check, Loader2, Tag, AlertCircle, User, Mail, Phone, MessageSquare } from 'lucide-react';
+import { useCreateQuote, useUpdateCoupon, useCreateInstantReservation, useCreateInquiry } from '@/lib/guesty';
+import type { Quote, Listing } from '@/lib/guesty/types';
+import { formatCurrency } from '@/lib/content';
+import { guestyClient } from '@/lib/guesty/client';
+import { z } from 'zod';
+
+const guestSchema = z.object({
+  firstName: z.string().trim().min(1, 'First name is required').max(50),
+  lastName: z.string().trim().min(1, 'Last name is required').max(50),
+  email: z.string().trim().email('Valid email required').max(255),
+  phone: z.string().trim().min(6, 'Phone number required').max(20),
+  message: z.string().max(500).optional(),
+});
+
+type GuestData = z.infer<typeof guestSchema>;
+
+interface BookingFlowProps {
+  listing: Listing;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+  onClose: () => void;
+}
+
+type Step = 'quote' | 'details' | 'confirm' | 'success';
+
+export default function BookingFlow({ listing, checkIn, checkOut, guests, onClose }: BookingFlowProps) {
+  const [step, setStep] = useState<Step>('quote');
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState('');
+  const [guestData, setGuestData] = useState<GuestData>({ firstName: '', lastName: '', email: '', phone: '', message: '' });
+  const [errors, setErrors] = useState<Partial<Record<keyof GuestData, string>>>({});
+  const [confirmationCode, setConfirmationCode] = useState('');
+  const [globalError, setGlobalError] = useState('');
+
+  const createQuote = useCreateQuote();
+  const updateCoupon = useUpdateCoupon();
+  const createReservation = useCreateInstantReservation();
+  const createInquiry = useCreateInquiry();
+
+  const nights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24));
+
+  // Step 1: Get quote
+  const handleGetQuote = async () => {
+    setGlobalError('');
+    try {
+      const q = await createQuote.mutateAsync({
+        listingId: listing._id,
+        checkInDateLocalized: checkIn,
+        checkOutDateLocalized: checkOut,
+        guestsCount: guests,
+      });
+      setQuote(q);
+      setStep('details');
+    } catch (err: any) {
+      setGlobalError(err.error_code ? guestyClient.formatError(err) : 'Failed to get pricing. Please try different dates.');
+    }
+  };
+
+  // Apply coupon
+  const handleApplyCoupon = async () => {
+    if (!quote || !couponCode.trim()) return;
+    setCouponError('');
+    try {
+      const updated = await updateCoupon.mutateAsync({ quoteId: quote._id, coupon: couponCode.trim() });
+      setQuote(updated);
+    } catch (err: any) {
+      setCouponError(err.error_code ? guestyClient.formatError(err) : 'Invalid promo code');
+    }
+  };
+
+  // Validate guest form
+  const validateGuest = (): boolean => {
+    const result = guestSchema.safeParse(guestData);
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof GuestData, string>> = {};
+      result.error.errors.forEach(e => {
+        const field = e.path[0] as keyof GuestData;
+        fieldErrors[field] = e.message;
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
+  // Step 3: Confirm & book
+  const handleBook = async () => {
+    if (!validateGuest()) return;
+    if (!quote) return;
+    setGlobalError('');
+
+    try {
+      const res = await createReservation.mutateAsync({
+        quoteId: quote._id,
+        guestData: {
+          firstName: guestData.firstName.trim(),
+          lastName: guestData.lastName.trim(),
+          email: guestData.email.trim(),
+          phone: guestData.phone.trim(),
+          message: guestData.message?.trim(),
+        },
+      });
+      setConfirmationCode(res.confirmationCode || res._id);
+      setStep('success');
+    } catch (err: any) {
+      // Fallback to inquiry if instant booking fails
+      try {
+        const res = await createInquiry.mutateAsync({
+          listingId: listing._id,
+          inquiryData: {
+            checkInDateLocalized: checkIn,
+            checkOutDateLocalized: checkOut,
+            guestsCount: guests,
+            guest: {
+              firstName: guestData.firstName.trim(),
+              lastName: guestData.lastName.trim(),
+              email: guestData.email.trim(),
+              phone: guestData.phone.trim(),
+            },
+            message: guestData.message?.trim() || `Booking inquiry for ${listing.title}`,
+          },
+        });
+        setConfirmationCode(res.confirmationCode || res._id);
+        setStep('success');
+      } catch (inquiryErr: any) {
+        setGlobalError(inquiryErr.error_code ? guestyClient.formatError(inquiryErr) : 'Booking failed. Please try again or contact us.');
+      }
+    }
+  };
+
+  const isLoading = createQuote.isPending || createReservation.isPending || createInquiry.isPending;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+      >
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between p-5 border-b border-border/50 bg-card">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-primary">
+              {step === 'quote' && 'Step 1 — Pricing'}
+              {step === 'details' && 'Step 2 — Your Details'}
+              {step === 'confirm' && 'Step 3 — Confirm'}
+              {step === 'success' && 'Booking Confirmed'}
+            </p>
+            <h2 className="font-serif text-lg font-semibold text-foreground mt-0.5">{listing.title}</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Progress */}
+        {step !== 'success' && (
+          <div className="flex gap-1 px-5 pt-4">
+            {(['quote', 'details', 'confirm'] as Step[]).map((s, i) => (
+              <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${
+                i <= ['quote', 'details', 'confirm'].indexOf(step) ? 'bg-primary' : 'bg-border'
+              }`} />
+            ))}
+          </div>
+        )}
+
+        <div className="p-5 space-y-5">
+          {/* Stay summary (always shown) */}
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>{new Date(checkIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} → {new Date(checkOut).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+            <span>·</span>
+            <span>{nights} night{nights !== 1 ? 's' : ''}</span>
+            <span>·</span>
+            <span>{guests} guest{guests !== 1 ? 's' : ''}</span>
+          </div>
+
+          {/* Global error */}
+          {globalError && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <AlertCircle size={16} className="text-destructive shrink-0 mt-0.5" />
+              <p className="text-sm text-destructive">{globalError}</p>
+            </div>
+          )}
+
+          {/* ── STEP: Quote ── */}
+          {step === 'quote' && (
+            <>
+              <div className="satin-surface rounded-xl p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{formatCurrency(listing.prices.basePrice)} × {nights} nights</span>
+                  <span className="text-foreground">{formatCurrency(listing.prices.basePrice * nights)}</span>
+                </div>
+                {listing.prices.cleaningFee && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Cleaning fee</span>
+                    <span className="text-foreground">{formatCurrency(listing.prices.cleaningFee)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-semibold pt-2 border-t border-border/30">
+                  <span className="text-foreground">Estimated total</span>
+                  <span className="text-primary">{formatCurrency(listing.prices.basePrice * nights + (listing.prices.cleaningFee || 0))}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleGetQuote}
+                disabled={isLoading}
+                className="w-full py-3.5 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isLoading ? <><Loader2 size={16} className="animate-spin" /> Getting exact price...</> : <>Get Exact Price <ChevronRight size={16} /></>}
+              </button>
+            </>
+          )}
+
+          {/* ── STEP: Details ── */}
+          {step === 'details' && quote && (
+            <>
+              {/* Price breakdown from quote */}
+              <div className="satin-surface rounded-xl p-4 space-y-2">
+                {quote.priceBreakdown?.map((item, i) => (
+                  <div key={i} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{item.description}</span>
+                    <span className="text-foreground">{formatCurrency(item.value)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-sm font-semibold pt-2 border-t border-border/30">
+                  <span className="text-foreground">Total</span>
+                  <span className="text-primary">{formatCurrency(quote.totalPrice)}</span>
+                </div>
+              </div>
+
+              {/* Coupon */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={e => setCouponCode(e.target.value)}
+                    placeholder="Promo code"
+                    className="form-input pl-9 text-xs"
+                  />
+                </div>
+                <button
+                  onClick={handleApplyCoupon}
+                  disabled={updateCoupon.isPending || !couponCode.trim()}
+                  className="px-4 py-2 border border-primary text-primary text-xs font-semibold rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50"
+                >
+                  {updateCoupon.isPending ? <Loader2 size={14} className="animate-spin" /> : 'Apply'}
+                </button>
+              </div>
+              {couponError && <p className="text-xs text-destructive">{couponError}</p>}
+
+              {/* Guest form */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground block mb-1">First Name</label>
+                    <div className="relative">
+                      <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={guestData.firstName}
+                        onChange={e => setGuestData(d => ({ ...d, firstName: e.target.value }))}
+                        className="form-input pl-9 text-xs"
+                        placeholder="John"
+                      />
+                    </div>
+                    {errors.firstName && <p className="text-xs text-destructive mt-0.5">{errors.firstName}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground block mb-1">Last Name</label>
+                    <input
+                      type="text"
+                      value={guestData.lastName}
+                      onChange={e => setGuestData(d => ({ ...d, lastName: e.target.value }))}
+                      className="form-input text-xs"
+                      placeholder="Doe"
+                    />
+                    {errors.lastName && <p className="text-xs text-destructive mt-0.5">{errors.lastName}</p>}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground block mb-1">Email</label>
+                  <div className="relative">
+                    <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="email"
+                      value={guestData.email}
+                      onChange={e => setGuestData(d => ({ ...d, email: e.target.value }))}
+                      className="form-input pl-9 text-xs"
+                      placeholder="john@example.com"
+                    />
+                  </div>
+                  {errors.email && <p className="text-xs text-destructive mt-0.5">{errors.email}</p>}
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground block mb-1">Phone</label>
+                  <div className="relative">
+                    <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="tel"
+                      value={guestData.phone}
+                      onChange={e => setGuestData(d => ({ ...d, phone: e.target.value }))}
+                      className="form-input pl-9 text-xs"
+                      placeholder="+356 1234 5678"
+                    />
+                  </div>
+                  {errors.phone && <p className="text-xs text-destructive mt-0.5">{errors.phone}</p>}
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground block mb-1">Message (optional)</label>
+                  <div className="relative">
+                    <MessageSquare size={14} className="absolute left-3 top-3 text-muted-foreground" />
+                    <textarea
+                      value={guestData.message}
+                      onChange={e => setGuestData(d => ({ ...d, message: e.target.value }))}
+                      className="form-input pl-9 text-xs min-h-[70px] resize-none"
+                      placeholder="Any special requests..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setStep('quote')}
+                  className="flex-1 py-3 border border-border text-sm text-muted-foreground rounded-lg hover:text-foreground hover:border-foreground/30 transition-colors flex items-center justify-center gap-1"
+                >
+                  <ChevronLeft size={16} /> Back
+                </button>
+                <button
+                  onClick={() => {
+                    if (validateGuest()) setStep('confirm');
+                  }}
+                  className="flex-[2] py-3 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-1"
+                >
+                  Review & Confirm <ChevronRight size={16} />
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── STEP: Confirm ── */}
+          {step === 'confirm' && quote && (
+            <>
+              <div className="satin-surface rounded-xl p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Booking Summary</h3>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Property</span>
+                    <span className="text-foreground font-medium">{listing.title}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Guest</span>
+                    <span className="text-foreground">{guestData.firstName} {guestData.lastName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Email</span>
+                    <span className="text-foreground">{guestData.email}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Dates</span>
+                    <span className="text-foreground">{new Date(checkIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – {new Date(checkOut).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Guests</span>
+                    <span className="text-foreground">{guests}</span>
+                  </div>
+                </div>
+                <div className="flex justify-between text-sm font-semibold pt-2 border-t border-border/30">
+                  <span className="text-foreground">Total</span>
+                  <span className="text-primary text-lg">{formatCurrency(quote.totalPrice)}</span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+                By confirming, you agree to the property's cancellation policy and house rules. 
+                A confirmation email will be sent to {guestData.email}.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setStep('details')}
+                  className="flex-1 py-3 border border-border text-sm text-muted-foreground rounded-lg hover:text-foreground transition-colors flex items-center justify-center gap-1"
+                >
+                  <ChevronLeft size={16} /> Back
+                </button>
+                <button
+                  onClick={handleBook}
+                  disabled={isLoading}
+                  className="flex-[2] py-3.5 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? <><Loader2 size={16} className="animate-spin" /> Processing...</> : <>Confirm Booking <Check size={16} /></>}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── STEP: Success ── */}
+          {step === 'success' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-6 space-y-4"
+            >
+              <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto">
+                <Check size={28} className="text-primary" />
+              </div>
+              <div>
+                <h3 className="font-serif text-2xl font-semibold text-foreground mb-1">Booking Confirmed!</h3>
+                <p className="text-sm text-muted-foreground">Your reservation has been submitted.</p>
+              </div>
+              {confirmationCode && (
+                <div className="satin-surface rounded-lg p-3 inline-block">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-0.5">Confirmation Code</p>
+                  <p className="text-lg font-mono font-semibold text-primary">{confirmationCode}</p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                A confirmation email has been sent to <strong className="text-foreground">{guestData.email}</strong>.
+              </p>
+              <button
+                onClick={onClose}
+                className="px-8 py-3 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity"
+              >
+                Done
+              </button>
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
