@@ -1,1 +1,4 @@
 project_id = "juctyediqqdcocglpsdx"
+
+[functions.guesty-proxy]
+verify_jwt = false

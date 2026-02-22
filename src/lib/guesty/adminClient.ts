@@ -1,89 +1,47 @@
 import type {
-  AdminListing, AdminReservation, InboxMessage, Folio, JournalEntry, GuestyWebhook, WebhookEvent
+  AdminListing, AdminReservation, InboxMessage, Folio, JournalEntry
 } from './types';
 
-const ADMIN_BASE_URL = 'https://api.guesty.com/v1';
-const CLIENT_ID = import.meta.env.VITE_GUESTY_ADMIN_CLIENT_ID;
-const CLIENT_SECRET = import.meta.env.VITE_GUESTY_ADMIN_CLIENT_SECRET;
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const FN_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/guesty-proxy`;
+
+async function request<T>(params: Record<string, string>, method: 'GET' | 'POST' = 'GET', body?: any): Promise<T> {
+  const url = new URL(FN_URL);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+  const opts: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': ANON_KEY,
+    },
+  };
+  if (body && method === 'POST') opts.body = JSON.stringify(body);
+
+  const res = await fetch(url.toString(), opts);
+  if (!res.ok) throw new Error(`Admin API Error: ${res.statusText}`);
+  return res.json() as Promise<T>;
+}
 
 class GuestyAdminClient {
-  private accessToken: string | null = null;
-  private tokenExpiry: number | null = null;
-
-  private async getAccessToken(): Promise<string> {
-    if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
-      return this.accessToken;
-    }
-
-    const response = await fetch(`${ADMIN_BASE_URL}/oauth2/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        grant_type: 'client_credentials',
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        scope: 'open_api',
-      }),
-    });
-
-    if (!response.ok) throw new Error('Failed to authenticate with Guesty Admin API');
-
-    const data = await response.json() as { access_token: string; expires_in: number };
-    this.accessToken = data.access_token;
-    this.tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-    return this.accessToken;
-  }
-
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = await this.getAccessToken();
-    const response = await fetch(`${ADMIN_BASE_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) throw new Error(`Admin API Error: ${response.statusText}`);
-    return (await response.json()) as T;
-  }
-
-  async updateListing(id: string, update: Partial<AdminListing>): Promise<AdminListing> {
-    return this.request<AdminListing>(`/listings/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(update),
-    });
-  }
-
   async getGlobalReservations(params: any = {}): Promise<AdminReservation[]> {
-    const query = new URLSearchParams(params).toString();
-    return this.request<AdminReservation[]>(`/reservations?${query}`);
+    const qp = new URLSearchParams(params).toString();
+    return request<AdminReservation[]>({ action: 'admin-reservations', params: qp });
   }
 
   async getMessages(params: any = {}): Promise<InboxMessage[]> {
-    const query = new URLSearchParams(params).toString();
-    return this.request<InboxMessage[]>(`/communication/messages?${query}`);
+    const qp = new URLSearchParams(params).toString();
+    return request<InboxMessage[]>({ action: 'admin-messages', params: qp });
   }
 
   async getFolioBalance(reservationId: string): Promise<Folio> {
-    return this.request<Folio>(`/accounting-api/reservations/${reservationId}/balance`);
+    return request<Folio>({ action: 'admin-folio', reservationId });
   }
 
   async getJournalEntries(params: any = {}): Promise<JournalEntry[]> {
-    const query = new URLSearchParams(params).toString();
-    return this.request<JournalEntry[]>(`/accounting/journal-entries?${query}`);
-  }
-
-  async getWebhooks(): Promise<GuestyWebhook[]> {
-    return this.request<GuestyWebhook[]>('/webhooks');
-  }
-
-  async createWebhook(url: string, events: WebhookEvent[]): Promise<GuestyWebhook> {
-    return this.request<GuestyWebhook>('/webhooks', {
-      method: 'POST',
-      body: JSON.stringify({ url, events }),
-    });
+    const qp = new URLSearchParams(params).toString();
+    return request<JournalEntry[]>({ action: 'admin-journal', params: qp });
   }
 }
 
