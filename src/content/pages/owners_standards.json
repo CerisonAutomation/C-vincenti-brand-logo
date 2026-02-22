@@ -1,0 +1,37 @@
+{
+  "title": "Our Standards",
+  "subtitle": "The Christiano Vincenti Difference",
+  "description": "Every property in our portfolio is held to institutional-grade standards. From the linens on the bed to the speed of our guest responses, we've codified what excellence looks like — and we deliver it consistently.",
+  "sections": [
+    {
+      "id": "hospitality",
+      "heading": "Hospitality Standards",
+      "items": [
+        { "title": "5-Star Welcome Pack", "description": "Every guest receives a curated welcome including local snacks, water, a personalised guidebook, and premium toiletries upon arrival." },
+        { "title": "Sub-1-Hour Response", "description": "Guest messages are answered within 60 minutes during business hours, and within 2 hours overnight. Average response time: 18 minutes." },
+        { "title": "Professional Photography", "description": "Every listing features architectural-quality photography with optimal lighting, staging, and composition — refreshed annually." },
+        { "title": "Smart Pricing", "description": "AI-driven dynamic pricing adjusted daily based on demand, seasonality, local events, and competitive analysis to maximise revenue." }
+      ]
+    },
+    {
+      "id": "property",
+      "heading": "Property Standards",
+      "items": [
+        { "title": "Hotel-Grade Linens", "description": "300-thread-count cotton sheets, professional laundering after every checkout, with regular replacement schedules." },
+        { "title": "Deep Clean Protocol", "description": "42-point cleaning checklist between every guest, including kitchen appliances, behind furniture, and all touch points." },
+        { "title": "Safety Compliance", "description": "Fire extinguishers, smoke detectors, carbon monoxide detectors, first aid kits, and emergency procedures in every property." },
+        { "title": "Maintenance at Cost", "description": "All maintenance is coordinated through our vetted contractor network and passed through at cost — zero markups, always." }
+      ]
+    },
+    {
+      "id": "reporting",
+      "heading": "Transparency & Reporting",
+      "items": [
+        { "title": "Monthly Owner Statements", "description": "Detailed monthly reports covering revenue, occupancy, expenses, guest reviews, and market benchmarking." },
+        { "title": "Real-Time Dashboard", "description": "Access your owner dashboard 24/7 to view bookings, calendar, earnings, and upcoming maintenance." },
+        { "title": "Quarterly Strategy Review", "description": "Every quarter, we review your property's performance and recommend pricing, furnishing, or listing optimisations." },
+        { "title": "Annual Performance Report", "description": "Comprehensive yearly summary with ROI analysis, market comparison, and forward-looking revenue projections." }
+      ]
+    }
+  ]
+}

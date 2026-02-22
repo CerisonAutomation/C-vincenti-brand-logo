@@ -1,0 +1,42 @@
+{
+  "title": "About Christiano Vincenti",
+  "subtitle": "Malta's Premier Property Partner",
+  "description": "Christiano Vincenti Property Management is a full-service short-let and residential property management company based in Malta. We combine institutional-grade operational standards with the personal touch of a boutique operator to deliver exceptional results for property owners and unforgettable experiences for guests.",
+  "sections": [
+    {
+      "id": "mission",
+      "heading": "Our Mission",
+      "body": "To set the benchmark for property management in the Maltese Islands by combining cutting-edge technology, transparent operations, and genuine hospitality. We believe every property deserves to perform at its full potential — and every guest deserves a five-star experience."
+    },
+    {
+      "id": "story",
+      "heading": "Our Story",
+      "body": "Founded in Malta with deep roots in the local property market, Christiano Vincenti grew from a passion for hospitality and a frustration with the status quo. Too many property owners were either over-charged, under-serviced, or left in the dark about their own investments. We set out to change that — building a management platform that puts owners first with radical transparency, no hidden markups, and institutional-level reporting."
+    },
+    {
+      "id": "why-malta",
+      "heading": "Why Malta & Gozo",
+      "body": "Malta is one of Europe's fastest-growing short-let markets, with year-round sunshine, a thriving tourism sector, and strong demand from business travellers, digital nomads, and holidaymakers alike. With an average occupancy rate exceeding 90% in prime areas, the islands offer exceptional rental yields when managed professionally. Our deep understanding of Malta Tourism Authority (MTA) regulations, local pricing dynamics, and seasonal demand patterns gives our owners a measurable edge."
+    },
+    {
+      "id": "values",
+      "heading": "Our Values",
+      "items": [
+        { "title": "Transparency", "description": "No hidden fees or markups. Maintenance at cost. Monthly statements with full breakdowns." },
+        { "title": "Excellence", "description": "Professional photography, dynamic pricing, and 5-star guest communication as standard." },
+        { "title": "Accountability", "description": "24-hour guaranteed response times. Every property gets a dedicated account manager." },
+        { "title": "Innovation", "description": "AI-powered pricing optimisation, multi-platform distribution, and real-time owner dashboards." }
+      ]
+    },
+    {
+      "id": "numbers",
+      "heading": "By the Numbers",
+      "items": [
+        { "title": "€2.4M+", "description": "Total revenue generated for our property owners across Malta and Gozo." },
+        { "title": "45+ Properties", "description": "Professionally managed across Sliema, St Julian's, Valletta, Mdina, Mellieħa, and Gozo." },
+        { "title": "4.97 Rating", "description": "Average guest review score across all platforms — consistently in the top 1% in Malta." },
+        { "title": "94% Occupancy", "description": "Average annual occupancy rate across our portfolio, outperforming market averages." }
+      ]
+    }
+  ]
+}
