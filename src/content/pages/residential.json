@@ -1,0 +1,34 @@
+{
+  "title": "Residential Services",
+  "subtitle": "Long-Term Property Management",
+  "description": "Beyond short-let management, we offer comprehensive residential letting and property stewardship services for owners seeking long-term tenants or year-round property care across Malta and Gozo.",
+  "sections": [
+    {
+      "id": "overview",
+      "heading": "Residential Letting & Management",
+      "body": "Whether you're an overseas owner needing hands-off management or a local landlord seeking professional tenant sourcing, our residential service covers every aspect of long-term property letting — from marketing and viewings to lease management, rent collection, and ongoing maintenance."
+    },
+    {
+      "id": "services",
+      "heading": "What's Included",
+      "items": [
+        { "title": "Tenant Sourcing & Vetting", "description": "Professional marketing across major portals, accompanied viewings, reference checks, employment verification, and deposit handling." },
+        { "title": "Lease Management", "description": "Full lease preparation, renewal tracking, and compliance with Maltese rental legislation including the Private Residential Leases Act." },
+        { "title": "Rent Collection", "description": "Automated monthly rent collection with owner payouts, arrears management, and detailed financial reporting." },
+        { "title": "Property Maintenance", "description": "24/7 maintenance coordination through our vetted contractor network. All costs passed at cost — no markups, ever." },
+        { "title": "Periodic Inspections", "description": "Regular property inspections with photographic reports to ensure your asset is maintained to the highest standard." },
+        { "title": "Regulatory Compliance", "description": "We ensure your property meets all Maltese legal requirements including EPC certificates, rental registration, and safety standards." }
+      ]
+    },
+    {
+      "id": "areas",
+      "heading": "Areas We Cover",
+      "body": "We manage residential properties across all of Malta and Gozo, with particular expertise in Sliema, St Julian's, Gżira, Msida, Valletta, Birkirkara, Mosta, Naxxar, Mellieħa, and Victoria (Gozo). Our deep local knowledge ensures optimal rental pricing for every micro-market."
+    },
+    {
+      "id": "cta",
+      "heading": "Speak to Our Residential Team",
+      "body": "Interested in residential property management? Contact us for a free consultation and property assessment. We'll provide a detailed rental market analysis for your area and a tailored management proposal."
+    }
+  ]
+}

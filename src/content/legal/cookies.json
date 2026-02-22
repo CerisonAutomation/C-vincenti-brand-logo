@@ -1,0 +1,47 @@
+{
+  "title": "Cookie Policy",
+  "cookieTable": [
+    {
+      "name": "cc_cookie",
+      "provider": "Christiano Vincenti PM",
+      "purpose": "Stores cookie consent preferences",
+      "expiry": "6 months",
+      "type": "Necessary"
+    },
+    {
+      "name": "sb-*-auth-token",
+      "provider": "Lovable Cloud (Supabase)",
+      "purpose": "Authentication session management",
+      "expiry": "Session",
+      "type": "Necessary"
+    },
+    {
+      "name": "_ga",
+      "provider": "Google Analytics",
+      "purpose": "Distinguishes unique users by assigning a randomly generated number as a client identifier",
+      "expiry": "2 years",
+      "type": "Analytics"
+    },
+    {
+      "name": "_ga_*",
+      "provider": "Google Analytics",
+      "purpose": "Used to persist session state across page requests",
+      "expiry": "2 years",
+      "type": "Analytics"
+    },
+    {
+      "name": "_gid",
+      "provider": "Google Analytics",
+      "purpose": "Distinguishes users for analytics aggregation",
+      "expiry": "24 hours",
+      "type": "Analytics"
+    },
+    {
+      "name": "guesty_token",
+      "provider": "Guesty Booking Engine",
+      "purpose": "Authentication token for booking engine API access",
+      "expiry": "1 hour",
+      "type": "Functional"
+    }
+  ]
+}

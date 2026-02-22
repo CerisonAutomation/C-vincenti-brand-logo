@@ -1,0 +1,191 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Raleway:wght@100;200;300;400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 4%;
+    --foreground: 40 20% 95%;
+
+    --card: 220 18% 7%;
+    --card-foreground: 40 20% 95%;
+
+    --popover: 220 18% 7%;
+    --popover-foreground: 40 20% 95%;
+
+    --primary: 42 76% 55%;
+    --primary-foreground: 220 20% 4%;
+
+    --secondary: 220 15% 12%;
+    --secondary-foreground: 40 20% 90%;
+
+    --muted: 220 15% 12%;
+    --muted-foreground: 220 10% 55%;
+
+    --accent: 220 15% 15%;
+    --accent-foreground: 40 20% 95%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 40 20% 95%;
+
+    --border: 220 15% 15%;
+    --input: 220 15% 15%;
+    --ring: 42 76% 55%;
+
+    --radius: 0.5rem;
+
+    --luxury-gold: 42 76% 55%;
+    --luxury-gold-light: 42 76% 65%;
+    --luxury-gold-dark: 42 76% 40%;
+
+    --gradient-hero-overlay: linear-gradient(
+      180deg,
+      hsla(220, 20%, 4%, 0.25) 0%,
+      hsla(220, 20%, 4%, 0.55) 40%,
+      hsla(220, 20%, 4%, 0.90) 100%
+    );
+    --gradient-gold: linear-gradient(135deg, hsl(42, 76%, 55%), hsl(42, 76%, 70%));
+    --shadow-gold: 0 8px 32px -8px hsla(42, 76%, 55%, 0.25);
+    --surface-overlay: hsla(220, 20%, 4%, 0.85);
+
+    --sidebar-background: 220 18% 7%;
+    --sidebar-foreground: 40 20% 95%;
+    --sidebar-primary: 42 76% 55%;
+    --sidebar-primary-foreground: 220 20% 4%;
+    --sidebar-accent: 220 15% 12%;
+    --sidebar-accent-foreground: 40 20% 95%;
+    --sidebar-border: 220 15% 15%;
+    --sidebar-ring: 42 76% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .font-script {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  .font-serif {
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  .font-display {
+    font-family: 'Raleway', sans-serif;
+  }
+
+  .gold-text {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glass-surface {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  /* Satin surface — silky-smooth card effect */
+  .satin-surface {
+    background: linear-gradient(
+      160deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--card) / 0.85) 40%,
+      hsl(var(--card) / 0.95) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 hsl(var(--foreground) / 0.04),
+      inset 0 -1px 0 hsl(var(--background) / 0.3),
+      0 4px 24px -4px hsl(var(--background) / 0.5);
+    border: 1px solid hsl(var(--border) / 0.5);
+    backdrop-filter: blur(12px);
+  }
+
+  /* Satin glow — subtle radial highlight */
+  .satin-glow {
+    position: relative;
+  }
+
+  .satin-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      ellipse at 30% 20%,
+      hsl(var(--primary) / 0.04) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+
+  .section-container {
+    @apply max-w-6xl mx-auto px-5 sm:px-8;
+  }
+
+  .micro-type {
+    @apply text-xs font-semibold uppercase tracking-[0.25em];
+  }
+
+  .form-input {
+    @apply w-full px-4 py-3 text-sm bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors;
+  }
+}
+
+/* ── Loading screen animations ── */
+@keyframes grain {
+  0%  { transform: translate(0, 0); }
+  25% { transform: translate(-5px, -4px); }
+  50% { transform: translate(4px, 6px); }
+  75% { transform: translate(-3px, -5px); }
+}
+
+@keyframes floatMap {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Cookie consent dark theme ── */
+.cc-window,
+#cc-main {
+  --cc-bg: hsl(220, 18%, 7%);
+  --cc-text: hsl(40, 20%, 95%);
+  --cc-btn-primary-bg: hsl(42, 76%, 55%);
+  --cc-btn-primary-text: hsl(220, 20%, 4%);
+  --cc-btn-secondary-bg: hsl(220, 15%, 12%);
+  --cc-btn-secondary-text: hsl(40, 20%, 95%);
+  --cc-toggle-bg-off: hsl(220, 15%, 15%);
+  --cc-toggle-bg-on: hsl(42, 76%, 55%);
+  --cc-cookie-category-block-bg: hsl(220, 15%, 10%);
+  --cc-cookie-category-block-bg-hover: hsl(220, 15%, 14%);
+  --cc-separator-border-color: hsl(220, 15%, 15%);
+}
