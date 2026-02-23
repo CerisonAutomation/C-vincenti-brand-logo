@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BRAND_NAME, BRAND_LABEL, BRAND_EST } from '@/lib/brand';
 
 interface LoadingScreenProps {
   onComplete: () => void;
@@ -11,7 +12,8 @@ const MALTA_D = "M 612 529 L 600 553 L 614 544 L 618 548 L 618 560 L 613 565 L 6
 // Exact Gozo path from uploaded SVG
 const GOZO_D = "M 56 143 L 61 159 L 76 172 L 83 167 L 87 171 L 83 177 L 95 186 L 85 208 L 93 226 L 82 235 L 89 254 L 84 263 L 85 275 L 78 283 L 80 294 L 114 317 L 158 314 L 179 325 L 202 329 L 207 343 L 250 384 L 268 381 L 310 388 L 336 398 L 404 408 L 423 418 L 443 415 L 460 422 L 518 409 L 530 398 L 588 399 L 645 367 L 655 354 L 714 360 L 738 344 L 761 344 L 795 327 L 792 294 L 747 262 L 736 245 L 719 231 L 701 230 L 682 212 L 677 194 L 645 184 L 636 186 L 626 177 L 593 166 L 597 175 L 613 178 L 625 186 L 609 198 L 603 186 L 595 186 L 588 178 L 561 166 L 563 153 L 556 159 L 547 151 L 526 153 L 515 139 L 519 160 L 512 163 L 440 122 L 448 115 L 484 131 L 496 141 L 502 134 L 447 111 L 434 116 L 399 87 L 360 71 L 317 67 L 261 74 L 246 70 L 236 76 L 226 74 L 170 86 L 131 107 L 71 112 L 63 120 Z";
 
-const NAME_CHARS = 'Christiano Vincenti'.split('');
+const NAME_CHARS = BRAND_NAME.split('');
+const LABEL_CHARS = BRAND_LABEL.split('');
 
 export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const [phase, setPhase] = useState(0);
@@ -20,16 +22,15 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 300),    // Map draws
-      setTimeout(() => setPhase(2), 2400),   // Name reveals
-      setTimeout(() => setPhase(3), 3800),   // Hold / subtitle
-      setTimeout(() => setPhase(4), 5000),   // Exit
-      setTimeout(() => onComplete(), 5800),
+      setTimeout(() => setPhase(1), 200),
+      setTimeout(() => setPhase(2), 1800),
+      setTimeout(() => setPhase(3), 3200),
+      setTimeout(() => setPhase(4), 4200),
+      setTimeout(() => onComplete(), 4900),
     ];
     return () => timers.forEach(clearTimeout);
   }, [onComplete]);
 
-  // Measure stroke lengths
   useEffect(() => {
     [maltaRef, gozoRef].forEach(ref => {
       if (ref.current) {
@@ -45,24 +46,21 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
         <motion.div
           key="loader"
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.7 }}
+          transition={{ duration: 0.6 }}
           className="fixed inset-0 z-[9999] overflow-hidden"
-          style={{ background: '#07060A' }}
+          style={{ background: 'hsl(220, 20%, 4%)' }}
         >
-          {/* Warm ambient */}
+          {/* Warm ambient glow */}
           <div className="absolute inset-0 pointer-events-none" style={{
-            background: 'radial-gradient(ellipse 60% 55% at 50% 52%, rgba(55,28,5,.20) 0%, rgba(25,10,2,.10) 50%, transparent 100%)'
+            background: 'radial-gradient(ellipse 60% 55% at 50% 52%, hsla(30, 50%, 12%, 0.20) 0%, hsla(30, 50%, 6%, 0.10) 50%, transparent 100%)'
           }} />
 
           {/* Film grain */}
           <div
             className="absolute pointer-events-none"
             style={{
-              inset: '-200px',
-              width: 'calc(100% + 400px)',
-              height: 'calc(100% + 400px)',
-              zIndex: 1,
-              opacity: 0.055,
+              inset: '-200px', width: 'calc(100% + 400px)', height: 'calc(100% + 400px)',
+              zIndex: 1, opacity: 0.04,
               animation: 'grain 0.09s steps(1) infinite',
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.5' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='512' height='512' filter='url(%23n)'/%3E%3C/svg%3E")`,
               backgroundSize: '180px 180px',
@@ -72,28 +70,25 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
           {/* Vignette */}
           <div className="absolute inset-0 pointer-events-none" style={{
             zIndex: 2,
-            background: 'radial-gradient(ellipse 75% 72% at 50% 50%, transparent 0%, rgba(4,3,7,.52) 58%, rgba(2,1,4,.98) 100%)'
+            background: 'radial-gradient(ellipse 75% 72% at 50% 50%, transparent 0%, hsla(220, 20%, 3%, 0.52) 58%, hsla(220, 20%, 2%, 0.98) 100%)'
           }} />
 
           {/* Corner marks */}
-          {(['tl','tr','bl','br'] as const).map((pos) => (
+          {(['tl', 'tr', 'bl', 'br'] as const).map((pos) => (
             <svg
               key={pos}
               className="fixed pointer-events-none transition-opacity duration-[2500ms]"
               style={{
-                width: 'clamp(22px, 2.6vw, 36px)',
-                height: 'clamp(22px, 2.6vw, 36px)',
-                opacity: phase >= 1 ? 0.2 : 0,
+                width: 'clamp(20px, 2.4vw, 32px)',
+                height: 'clamp(20px, 2.4vw, 32px)',
+                opacity: phase >= 1 ? 0.18 : 0,
                 zIndex: 20,
                 ...(pos === 'tl' ? { top: 'clamp(18px,2.4vw,30px)', left: 'clamp(18px,2.4vw,30px)' } :
                   pos === 'tr' ? { top: 'clamp(18px,2.4vw,30px)', right: 'clamp(18px,2.4vw,30px)', transform: 'scaleX(-1)' } :
                   pos === 'bl' ? { bottom: 'clamp(18px,2.4vw,30px)', left: 'clamp(18px,2.4vw,30px)', transform: 'scaleY(-1)' } :
                   { bottom: 'clamp(18px,2.4vw,30px)', right: 'clamp(18px,2.4vw,30px)', transform: 'scale(-1,-1)' })
               }}
-              viewBox="0 0 36 36"
-              fill="none"
-              stroke="rgba(200,169,110,.4)"
-              strokeWidth="1"
+              viewBox="0 0 36 36" fill="none" stroke="hsla(42, 50%, 55%, 0.35)" strokeWidth="1"
             >
               <path d="M 0 12 L 0 0 L 12 0" />
             </svg>
@@ -104,15 +99,15 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
 
             {/* MALTA title */}
             <div
-              className="transition-all duration-[2000ms]"
+              className="transition-all duration-[1800ms]"
               style={{
                 fontFamily: "'Raleway', sans-serif",
                 fontWeight: 100,
-                fontSize: 'clamp(10px, 1.1vw, 14px)',
+                fontSize: 'clamp(9px, 1vw, 13px)',
                 letterSpacing: '0.75em',
                 textIndent: '0.75em',
-                color: 'rgba(200,169,110,.5)',
-                marginBottom: 'clamp(22px, 3.5vh, 44px)',
+                color: 'hsla(42, 50%, 55%, 0.45)',
+                marginBottom: 'clamp(20px, 3vh, 40px)',
                 opacity: phase >= 1 ? 1 : 0,
                 transform: phase >= 1 ? 'translateY(0)' : 'translateY(-10px)',
               }}
@@ -120,24 +115,24 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
               M &nbsp;&nbsp; A &nbsp;&nbsp; L &nbsp;&nbsp; T &nbsp;&nbsp; A
             </div>
 
-            {/* SVG Map — using exact uploaded paths */}
+            {/* SVG Map */}
             <div
               className="relative transition-all duration-1000"
               style={{
-                width: 'min(520px, 58vw, 52vh)',
+                width: 'min(480px, 55vw, 50vh)',
                 opacity: phase >= 1 ? 1 : 0,
                 transform: phase >= 1 ? 'translateY(0) scale(1)' : 'translateY(10px) scale(0.97)',
               }}
             >
-              {/* Warm glow */}
+              {/* Glow */}
               <div
-                className="absolute pointer-events-none transition-opacity duration-[3500ms]"
+                className="absolute pointer-events-none transition-opacity duration-[3000ms]"
                 style={{
                   bottom: '-18%', left: '8%', right: '8%', height: '42%',
-                  background: 'radial-gradient(ellipse at 50% 0%, rgba(140,80,15,.16) 0%, rgba(90,45,5,.06) 55%, transparent 100%)',
+                  background: 'radial-gradient(ellipse at 50% 0%, hsla(30, 50%, 30%, 0.14) 0%, hsla(30, 50%, 20%, 0.05) 55%, transparent 100%)',
                   filter: 'blur(32px)',
                   opacity: phase >= 1 ? 1 : 0,
-                  transitionDelay: '1s',
+                  transitionDelay: '0.8s',
                 }}
               />
 
@@ -145,92 +140,81 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
                 viewBox="0 0 2072 1480"
                 className="w-full h-auto block overflow-visible"
                 style={{
-                  filter: 'drop-shadow(0 28px 70px rgba(0,0,0,.99)) drop-shadow(0 6px 18px rgba(0,0,0,.9))',
+                  filter: 'drop-shadow(0 24px 60px hsla(0, 0%, 0%, 0.95)) drop-shadow(0 4px 14px hsla(0, 0%, 0%, 0.85))',
                   animation: phase >= 3 ? 'floatMap 8s ease-in-out infinite' : 'none',
                 }}
               >
                 <defs>
-                  <linearGradient id="luxGold" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#f7d77a" />
-                    <stop offset="45%" stopColor="#d4af37" />
-                    <stop offset="100%" stopColor="#b8860b" />
-                  </linearGradient>
                   <linearGradient id="luxGoldFaint" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="rgba(247,215,122,0.20)" />
-                    <stop offset="45%" stopColor="rgba(212,175,55,0.14)" />
-                    <stop offset="100%" stopColor="rgba(184,134,11,0.08)" />
+                    <stop offset="0%" stopColor="hsla(42, 70%, 60%, 0.18)" />
+                    <stop offset="45%" stopColor="hsla(42, 60%, 45%, 0.12)" />
+                    <stop offset="100%" stopColor="hsla(42, 50%, 35%, 0.07)" />
                   </linearGradient>
                 </defs>
-
-                {/* Gozo */}
                 <path
                   ref={gozoRef}
                   d={GOZO_D}
                   style={{
                     fill: phase >= 2 ? 'url(#luxGoldFaint)' : 'transparent',
-                    stroke: 'rgba(200,160,60,.55)',
-                    strokeWidth: 3,
-                    strokeLinejoin: 'round' as const,
+                    stroke: 'hsla(42, 50%, 50%, 0.5)',
+                    strokeWidth: 2.5,
+                    strokeLinejoin: 'round',
                     strokeDasharray: 'var(--len, 3000)',
                     strokeDashoffset: phase >= 1 ? '0' : 'var(--len, 3000)',
-                    transition: 'stroke-dashoffset 2.8s cubic-bezier(.4,0,.2,1), fill 2.5s ease',
+                    transition: 'stroke-dashoffset 2.4s cubic-bezier(.4,0,.2,1), fill 2s ease',
                   }}
                 />
-
-                {/* Malta */}
                 <path
                   ref={maltaRef}
                   d={MALTA_D}
                   style={{
                     fill: phase >= 2 ? 'url(#luxGoldFaint)' : 'transparent',
-                    stroke: 'rgba(200,160,60,.55)',
-                    strokeWidth: 3,
-                    strokeLinejoin: 'round' as const,
+                    stroke: 'hsla(42, 50%, 50%, 0.5)',
+                    strokeWidth: 2.5,
+                    strokeLinejoin: 'round',
                     strokeDasharray: 'var(--len, 6000)',
                     strokeDashoffset: phase >= 1 ? '0' : 'var(--len, 6000)',
-                    transition: 'stroke-dashoffset 2.8s cubic-bezier(.4,0,.2,1), fill 2.5s ease',
+                    transition: 'stroke-dashoffset 2.4s cubic-bezier(.4,0,.2,1), fill 2s ease',
                   }}
                 />
               </svg>
             </div>
 
             {/* Name block */}
-            <div className="flex flex-col items-center" style={{ marginTop: 'clamp(28px, 4.2vh, 50px)' }}>
-
-              {/* Top decorative rule */}
+            <div className="flex flex-col items-center" style={{ marginTop: 'clamp(24px, 3.5vh, 44px)' }}>
+              {/* Top rule */}
               <div
-                className="flex items-center overflow-hidden transition-all duration-[2400ms]"
+                className="flex items-center overflow-hidden transition-all duration-[2000ms]"
                 style={{
-                  gap: 'clamp(10px, 1.4vw, 18px)',
-                  marginBottom: 'clamp(14px, 2vh, 24px)',
-                  width: phase >= 2 ? 'min(360px, 48vw)' : '0px',
+                  gap: 'clamp(8px, 1.2vw, 16px)',
+                  marginBottom: 'clamp(12px, 1.8vh, 20px)',
+                  width: phase >= 2 ? 'min(320px, 44vw)' : '0px',
                   transitionTimingFunction: 'cubic-bezier(.4,0,.2,1)',
                 }}
               >
-                <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(180,130,55,.55))' }} />
-                <div className="w-1 h-1 rounded-full" style={{ background: 'rgba(180,130,55,.5)' }} />
+                <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsla(42, 50%, 45%, 0.5))' }} />
+                <div className="w-1 h-1 rounded-full" style={{ background: 'hsla(42, 50%, 45%, 0.45)' }} />
                 <div className="flex-shrink-0" style={{
-                  width: 5, height: 5,
-                  background: '#C8A96E',
+                  width: 5, height: 5, background: 'hsl(42, 60%, 55%)',
                   transform: 'rotate(45deg)',
-                  boxShadow: '0 0 8px rgba(200,169,110,.5)',
+                  boxShadow: '0 0 8px hsla(42, 60%, 55%, 0.5)',
                 }} />
-                <div className="w-1 h-1 rounded-full" style={{ background: 'rgba(180,130,55,.5)' }} />
-                <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, rgba(180,130,55,.55), transparent)' }} />
+                <div className="w-1 h-1 rounded-full" style={{ background: 'hsla(42, 50%, 45%, 0.45)' }} />
+                <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, hsla(42, 50%, 45%, 0.5), transparent)' }} />
               </div>
 
-              {/* Name — letter by letter */}
+              {/* Name */}
               <div
                 className="flex overflow-hidden select-none"
                 style={{
                   fontFamily: "'Cormorant Garamond', serif",
                   fontStyle: 'italic',
                   fontWeight: 300,
-                  fontSize: 'clamp(36px, 6.2vw, 80px)',
+                  fontSize: 'clamp(34px, 5.8vw, 72px)',
                   letterSpacing: '.025em',
                   lineHeight: 1,
-                  color: '#EDE5D2',
-                  textShadow: '0 2px 50px rgba(0,0,0,.9), 0 0 80px rgba(200,169,110,.08)',
+                  color: 'hsl(40, 20%, 90%)',
+                  textShadow: '0 2px 40px hsla(0, 0%, 0%, 0.85), 0 0 60px hsla(42, 60%, 55%, 0.06)',
                 }}
               >
                 {NAME_CHARS.map((char, i) => (
@@ -240,7 +224,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
                     style={{
                       opacity: phase >= 2 ? 1 : 0,
                       transform: phase >= 2 ? 'translateY(0)' : 'translateY(100%)',
-                      transition: `opacity 0.5s ease ${i * 0.04}s, transform 0.5s cubic-bezier(.16,1,.3,1) ${i * 0.04}s`,
+                      transition: `opacity 0.45s ease ${i * 0.035}s, transform 0.45s cubic-bezier(.16,1,.3,1) ${i * 0.035}s`,
                       width: char === ' ' ? '0.22em' : undefined,
                     }}
                   >
@@ -251,64 +235,62 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
 
               {/* Subtitle */}
               <div
-                className="transition-opacity duration-[2500ms]"
+                className="transition-opacity duration-[2000ms] flex gap-[0.35em]"
                 style={{
                   fontFamily: "'Raleway', sans-serif",
                   fontWeight: 200,
-                  fontSize: 'clamp(7px, .76vw, 9.5px)',
-                  letterSpacing: '.52em',
-                  textIndent: '.52em',
-                  color: 'rgba(180,150,100,.42)',
-                  marginTop: 'clamp(10px, 1.5vh, 16px)',
+                  fontSize: 'clamp(6.5px, .72vw, 9px)',
+                  letterSpacing: '.48em',
+                  color: 'hsla(42, 40%, 50%, 0.38)',
+                  marginTop: 'clamp(8px, 1.2vh, 14px)',
                   opacity: phase >= 3 ? 1 : 0,
                 }}
               >
-                P R O P E R T Y &nbsp; M A N A G E M E N T
+                {LABEL_CHARS.map((c, i) => (
+                  <span key={i}>{c === ' ' ? '\u00A0\u00A0' : c}</span>
+                ))}
               </div>
 
               {/* Bottom rule */}
               <div
-                className="h-px transition-all duration-[2000ms]"
+                className="h-px transition-all duration-[1800ms]"
                 style={{
-                  background: 'linear-gradient(90deg, transparent, rgba(140,100,40,.32) 35%, rgba(160,120,55,.4) 50%, rgba(140,100,40,.32) 65%, transparent)',
-                  marginTop: 'clamp(12px, 1.8vh, 20px)',
-                  width: phase >= 2 ? 'min(110px, 15vw)' : '0px',
-                  transitionDelay: '0.4s',
+                  background: 'linear-gradient(90deg, transparent, hsla(42, 50%, 38%, 0.3) 35%, hsla(42, 50%, 42%, 0.38) 50%, hsla(42, 50%, 38%, 0.3) 65%, transparent)',
+                  marginTop: 'clamp(10px, 1.5vh, 16px)',
+                  width: phase >= 2 ? 'min(100px, 14vw)' : '0px',
+                  transitionDelay: '0.3s',
                   transitionTimingFunction: 'cubic-bezier(.4,0,.2,1)',
                 }}
               />
             </div>
           </div>
 
-          {/* Bottom counter */}
+          {/* Bottom line */}
           <div
-            className="fixed z-20 transition-opacity duration-[1200ms]"
+            className="fixed z-20 transition-opacity duration-[1000ms]"
             style={{
-              bottom: 'clamp(26px, 4vh, 46px)',
-              left: '50%',
-              transform: 'translateX(-50%)',
+              bottom: 'clamp(22px, 3.5vh, 40px)',
+              left: '50%', transform: 'translateX(-50%)',
               fontFamily: "'Raleway', sans-serif",
               fontWeight: 100,
-              fontSize: 'clamp(7.5px, .78vw, 9.5px)',
-              letterSpacing: '.55em',
-              textIndent: '.55em',
-              color: 'rgba(160,120,50,.3)',
+              fontSize: 'clamp(7px, .72vw, 9px)',
+              letterSpacing: '.5em', textIndent: '.5em',
+              color: 'hsla(42, 40%, 42%, 0.25)',
               opacity: phase >= 3 ? 1 : 0,
-              whiteSpace: 'nowrap',
-              userSelect: 'none',
+              whiteSpace: 'nowrap', userSelect: 'none',
             }}
           >
-            CHRISTIANO VINCENTI — EST. MMXXIV
+            {BRAND_NAME.toUpperCase()} — EST. {BRAND_EST}
           </div>
 
           {/* Exit veil */}
           <div
             className="fixed inset-0 z-50 pointer-events-none"
             style={{
-              background: '#07060A',
+              background: 'hsl(220, 20%, 4%)',
               transformOrigin: 'top',
               transform: phase >= 4 ? 'scaleY(1)' : 'scaleY(0)',
-              transition: phase >= 4 ? 'transform 1.5s cubic-bezier(.76,0,.24,1)' : 'none',
+              transition: phase >= 4 ? 'transform 1.2s cubic-bezier(.76,0,.24,1)' : 'none',
             }}
           />
         </motion.div>
