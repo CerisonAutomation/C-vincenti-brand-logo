@@ -1,4 +1,5 @@
 import React from 'react';
+import { BRAND_NAME, BRAND_LABEL } from '@/lib/brand';
 
 interface LogoProps {
   className?: string;
@@ -7,9 +8,9 @@ interface LogoProps {
   onClick?: () => void;
 }
 
-export const Logo: React.FC<LogoProps> = ({ 
-  className = '', 
-  subText = 'PROPERTY MANAGEMENT', 
+export const Logo: React.FC<LogoProps> = ({
+  className = '',
+  subText = BRAND_LABEL,
   size = 'md',
   onClick
 }) => {
@@ -28,11 +29,11 @@ export const Logo: React.FC<LogoProps> = ({
   };
 
   return (
-    <div 
+    <div
       onClick={handleLogoClick}
       className={`flex flex-col items-start cursor-pointer group transition-all duration-500 select-none ${className}`}
       role="button"
-      aria-label="Christiano Vincenti Home"
+      aria-label={`${BRAND_NAME} Home`}
     >
       <span
         className={`text-foreground leading-none group-hover:text-primary transition-colors duration-500 ${sizeClasses[size].main}`}
@@ -43,7 +44,7 @@ export const Logo: React.FC<LogoProps> = ({
           letterSpacing: '0.01em',
         }}
       >
-        Christiano Vincenti
+        {BRAND_NAME}
       </span>
       <span
         className={`text-primary/60 ${sizeClasses[size].sub}`}
