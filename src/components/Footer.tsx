@@ -6,9 +6,8 @@ import { BRAND_FULL, BRAND_EMAIL, BRAND_PHONE, BRAND_LOCATION } from '@/lib/bran
 
 const LINKS = {
   guests: [
-    { label: "Properties", href: "/properties" },
+    { label: "Browse Stays", href: "/properties" },
     { label: "Book Direct", href: "/book" },
-    { label: "Residential", href: "/residential" },
     { label: "FAQ", href: "/faq" },
   ],
   owners: [

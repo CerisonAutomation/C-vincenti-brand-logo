@@ -13,55 +13,78 @@ function corsHeaders(origin?: string | null) {
   };
 }
 
-// ── Env (no VITE_ prefix for server-side) ──
-const BE_BASE = Deno.env.get('GUESTY_BE_BASE') || Deno.env.get('VITE_GUESTY_BASE_URL') || 'https://booking.guesty.com/api/v1';
-const BE_CLIENT_ID = Deno.env.get('GUESTY_BE_CLIENT_ID') || Deno.env.get('VITE_GUESTY_CLIENT_ID') || '';
-const BE_CLIENT_SECRET = Deno.env.get('GUESTY_BE_CLIENT_SECRET') || Deno.env.get('VITE_GUESTY_CLIENT_SECRET') || '';
-const ADMIN_BASE = 'https://api.guesty.com/v1';
-const ADMIN_CLIENT_ID = Deno.env.get('GUESTY_ADMIN_CLIENT_ID') || Deno.env.get('VITE_GUESTY_ADMIN_CLIENT_ID') || '';
-const ADMIN_CLIENT_SECRET = Deno.env.get('GUESTY_ADMIN_CLIENT_SECRET') || Deno.env.get('VITE_GUESTY_ADMIN_CLIENT_SECRET') || '';
+// ── Env (server-side only — no VITE_ prefix) ──
+// Booking Engine API (per https://booking-api-docs.guesty.com)
+const BE_TOKEN_URL = 'https://booking.guesty.com/oauth2/token';
+const BE_API_BASE = 'https://booking.guesty.com/api';
+const BE_CLIENT_ID = Deno.env.get('GUESTY_BE_CLIENT_ID') || '';
+const BE_CLIENT_SECRET = Deno.env.get('GUESTY_BE_CLIENT_SECRET') || '';
+
+// Open API (per https://open-api-docs.guesty.com)
+const OPEN_API_TOKEN_URL = 'https://open-api.guesty.com/oauth2/token';
+const OPEN_API_BASE = 'https://open-api.guesty.com/v1';
+const OPEN_API_CLIENT_ID = Deno.env.get('GUESTY_OPEN_API_CLIENT_ID') || '';
+const OPEN_API_CLIENT_SECRET = Deno.env.get('GUESTY_OPEN_API_CLIENT_SECRET') || '';
 
 // ── Token cache ──
 let beToken: { token: string; expiry: number } | null = null;
-let adminToken: { token: string; expiry: number } | null = null;
+let openApiToken: { token: string; expiry: number } | null = null;
 
 async function getBEToken(): Promise<string> {
   if (beToken && Date.now() < beToken.expiry) return beToken.token;
-  const res = await fetchWithRetry(`${BE_BASE}/oauth/token`, {
+
+  // Per Guesty docs: form-urlencoded, scope=booking_engine:api
+  const res = await fetchWithRetry(BE_TOKEN_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    headers: { 
+      'Accept': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
       grant_type: 'client_credentials',
+      scope: 'booking_engine:api',
       client_id: BE_CLIENT_ID,
       client_secret: BE_CLIENT_SECRET,
-      scope: 'booking_engine',
-    }),
+    }).toString(),
   });
+
   if (!res.ok) {
     const text = await res.text().catch(() => '');
+    console.error('BE Auth failed:', res.status, text);
     throw new Error(`Guesty BE auth failed (${res.status}): ${text}`);
   }
+
   const data = await res.json();
-  beToken = { token: data.access_token, expiry: Date.now() + (data.expires_in - 60) * 1000 };
+  beToken = { token: data.access_token, expiry: Date.now() + (data.expires_in - 120) * 1000 };
   return beToken.token;
 }
 
-async function getAdminToken(): Promise<string> {
-  if (adminToken && Date.now() < adminToken.expiry) return adminToken.token;
-  const res = await fetchWithRetry(`${ADMIN_BASE}/oauth2/token`, {
+async function getOpenApiToken(): Promise<string> {
+  if (openApiToken && Date.now() < openApiToken.expiry) return openApiToken.token;
+
+  const res = await fetchWithRetry(OPEN_API_TOKEN_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    headers: { 
+      'Accept': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
       grant_type: 'client_credentials',
-      client_id: ADMIN_CLIENT_ID,
-      client_secret: ADMIN_CLIENT_SECRET,
-      scope: 'open_api',
-    }),
+      scope: 'open-api',
+      client_id: OPEN_API_CLIENT_ID,
+      client_secret: OPEN_API_CLIENT_SECRET,
+    }).toString(),
   });
-  if (!res.ok) throw new Error('Guesty Admin auth failed');
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    console.error('Open API Auth failed:', res.status, text);
+    throw new Error(`Guesty Open API auth failed (${res.status}): ${text}`);
+  }
+
   const data = await res.json();
-  adminToken = { token: data.access_token, expiry: Date.now() + (data.expires_in - 60) * 1000 };
-  return adminToken.token;
+  openApiToken = { token: data.access_token, expiry: Date.now() + (data.expires_in - 120) * 1000 };
+  return openApiToken.token;
 }
 
 // ── Retry logic ──
@@ -73,7 +96,8 @@ async function fetchWithRetry(url: string, opts: RequestInit, retries = 3): Prom
       const res = await fetch(url, { ...opts, signal: controller.signal });
       clearTimeout(timeout);
       if (res.status === 429 || (res.status >= 500 && i < retries - 1)) {
-        const wait = Math.min(1000 * Math.pow(2, i), 4000);
+        const retryAfter = res.headers.get('Retry-After');
+        const wait = retryAfter ? parseInt(retryAfter) * 1000 : Math.min(1000 * Math.pow(2, i), 4000);
         await new Promise(r => setTimeout(r, wait));
         continue;
       }
@@ -94,19 +118,22 @@ function errorResponse(code: string, message: string, status: number, cors: Reco
   });
 }
 
-// ── Proxy ──
+// ── Proxy helper ──
 async function proxyRequest(baseUrl: string, getToken: () => Promise<string>, endpoint: string, method: string, body?: string, cors: Record<string, string> = {}): Promise<Response> {
   const token = await getToken();
   const opts: RequestInit = {
     method,
     headers: {
       'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json; charset=utf-8',
       'Content-Type': 'application/json',
     },
   };
   if (body && method !== 'GET') opts.body = body;
 
-  const res = await fetchWithRetry(`${baseUrl}${endpoint}`, opts);
+  const fullUrl = `${baseUrl}${endpoint}`;
+  console.log(`[proxy] ${method} ${fullUrl}`);
+  const res = await fetchWithRetry(fullUrl, opts);
   const data = await res.text();
 
   return new Response(data, {
@@ -115,7 +142,7 @@ async function proxyRequest(baseUrl: string, getToken: () => Promise<string>, en
   });
 }
 
-// ── Rich listing detail fields ──
+// ── Rich listing fields ──
 const LISTING_DETAIL_FIELDS = 'bedArrangements,publishedAddress,taxes,publicDescription,calendarRules,pictures,amenities,prices,tags';
 const LISTING_LIST_FIELDS = 'bedArrangements,publishedAddress,taxes,pictures,amenities,prices,tags';
 
@@ -133,75 +160,132 @@ serve(async (req) => {
     const body = req.method === 'POST' ? await req.text() : undefined;
 
     switch (action) {
-      // ── Listings (max data) ──
+      // ══════════════════════════════════════════════
+      // BOOKING ENGINE API ENDPOINTS
+      // ══════════════════════════════════════════════
+
+      // Search listings (per BE API docs: GET /v1/search)
+      case 'search': {
+        const params = url.searchParams.get('params') || '';
+        return proxyRequest('https://booking-api.guesty.com', getBEToken, `/v1/search?${params}`, 'GET', undefined, cors);
+      }
+
+      // List my listings (GET /me/listings)
       case 'listings': {
         const params = url.searchParams.get('params') || '';
-        return proxyRequest(BE_BASE, getBEToken, `/me/listings?fields=${LISTING_LIST_FIELDS}&${params}`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings?fields=${LISTING_LIST_FIELDS}&${params}`, 'GET', undefined, cors);
       }
+
+      // Get listing detail (GET /me/listings/:id)
       case 'listing': {
         const id = url.searchParams.get('id');
         if (!id) return errorResponse('MISSING_PARAM', 'Missing listing id', 400, cors);
-        return proxyRequest(BE_BASE, getBEToken, `/me/listings/${id}?fields=${LISTING_DETAIL_FIELDS}`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings/${id}?fields=${LISTING_DETAIL_FIELDS}`, 'GET', undefined, cors);
       }
-      case 'cities':
-        return proxyRequest(BE_BASE, getBEToken, '/me/listings/cities', 'GET', undefined, cors);
 
+      // Cities
+      case 'cities':
+        return proxyRequest(BE_API_BASE, getBEToken, '/me/listings/cities', 'GET', undefined, cors);
+
+      // Calendar availability (GET /me/listings/:id/calendar)
       case 'calendar': {
         const id = url.searchParams.get('id');
         const from = url.searchParams.get('from');
         const to = url.searchParams.get('to');
         if (!id || !from || !to) return errorResponse('MISSING_PARAM', 'Missing calendar params', 400, cors);
-        return proxyRequest(BE_BASE, getBEToken, `/me/listings/${id}/calendar?from=${from}&to=${to}`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings/${id}/calendar?from=${from}&to=${to}`, 'GET', undefined, cors);
       }
+
+      // ── Reservation Quote Flow (per BE API docs) ──
+
+      // Create quote (POST /reservations/quotes)
       case 'quote':
-        return proxyRequest(BE_BASE, getBEToken, '/reservations/quotes', 'POST', body, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, '/reservations/quotes', 'POST', body, cors);
+
+      // Retrieve quote (GET /reservations/quotes/:quoteId)
+      case 'quote-get': {
+        const quoteId = url.searchParams.get('quoteId');
+        if (!quoteId) return errorResponse('MISSING_PARAM', 'Missing quoteId', 400, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/reservations/quotes/${quoteId}`, 'GET', undefined, cors);
+      }
+
+      // Apply coupon to quote (POST /reservations/quotes/:quoteId/coupons)
       case 'quote-coupon': {
         const quoteId = url.searchParams.get('quoteId');
         if (!quoteId) return errorResponse('MISSING_PARAM', 'Missing quoteId', 400, cors);
-        return proxyRequest(BE_BASE, getBEToken, `/reservations/quotes/${quoteId}/coupons`, 'POST', body, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/reservations/quotes/${quoteId}/coupons`, 'POST', body, cors);
       }
+
+      // Instant booking from quote (POST /reservations/quotes/:quoteId/instant)
       case 'instant-booking': {
         const quoteId = url.searchParams.get('quoteId');
         if (!quoteId) return errorResponse('MISSING_PARAM', 'Missing quoteId', 400, cors);
-        return proxyRequest(BE_BASE, getBEToken, `/reservations/quotes/${quoteId}/instant-booking`, 'POST', body, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/reservations/quotes/${quoteId}/instant`, 'POST', body, cors);
       }
+
+      // Create inquiry (POST /me/reservations/inquiry)
       case 'inquiry':
-        return proxyRequest(BE_BASE, getBEToken, '/me/reservations/inquiry', 'POST', body, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, '/me/reservations/inquiry', 'POST', body, cors);
+
+      // Reviews (GET /me/reviews)
       case 'reviews': {
         const params = url.searchParams.get('params') || '';
-        return proxyRequest(BE_BASE, getBEToken, `/me/reviews${params ? `?${params}` : ''}`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/me/reviews${params ? `?${params}` : ''}`, 'GET', undefined, cors);
       }
+
+      // Upsell fees (GET /me/listings/:id/upsell-fees)
       case 'upsell-fees': {
         const id = url.searchParams.get('id');
         if (!id) return errorResponse('MISSING_PARAM', 'Missing id', 400, cors);
-        return proxyRequest(BE_BASE, getBEToken, `/me/listings/${id}/upsell-fees`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings/${id}/upsell-fees`, 'GET', undefined, cors);
       }
+
+      // Payment provider (GET /me/listings/:id/payment-provider)
       case 'payment-provider': {
         const id = url.searchParams.get('id');
         if (!id) return errorResponse('MISSING_PARAM', 'Missing id', 400, cors);
-        return proxyRequest(BE_BASE, getBEToken, `/me/listings/${id}/payment-provider`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings/${id}/payment-provider`, 'GET', undefined, cors);
       }
+
+      // Payout schedule (GET /reservations/payouts/list)
       case 'payout-schedule': {
         const id = url.searchParams.get('id');
         const from = url.searchParams.get('from');
         const to = url.searchParams.get('to');
         if (!id || !from || !to) return errorResponse('MISSING_PARAM', 'Missing params', 400, cors);
-        return proxyRequest(BE_BASE, getBEToken, `/me/listings/${id}/payouts-schedule?checkin=${from}&checkout=${to}`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/reservations/payouts/list?listingId=${id}&checkIn=${from}&checkOut=${to}`, 'GET', undefined, cors);
       }
-      // ── Admin ──
-      case 'admin-reservations': {
+
+      // ══════════════════════════════════════════════
+      // OPEN API ENDPOINTS (admin / post-booking)
+      // ══════════════════════════════════════════════
+
+      // Get reservation by ID (Open API)
+      case 'open-reservation': {
+        const resId = url.searchParams.get('reservationId');
+        if (!resId) return errorResponse('MISSING_PARAM', 'Missing reservationId', 400, cors);
+        return proxyRequest(OPEN_API_BASE, getOpenApiToken, `/reservations/${resId}`, 'GET', undefined, cors);
+      }
+
+      // Search reservations (Open API)
+      case 'open-reservations': {
         const params = url.searchParams.get('params') || '';
-        return proxyRequest(ADMIN_BASE, getAdminToken, `/reservations${params ? `?${params}` : ''}`, 'GET', undefined, cors);
+        return proxyRequest(OPEN_API_BASE, getOpenApiToken, `/reservations${params ? `?${params}` : ''}`, 'GET', undefined, cors);
       }
+
+      // Admin messages
       case 'admin-messages': {
         const params = url.searchParams.get('params') || '';
-        return proxyRequest(ADMIN_BASE, getAdminToken, `/communication/messages${params ? `?${params}` : ''}`, 'GET', undefined, cors);
+        return proxyRequest(OPEN_API_BASE, getOpenApiToken, `/communication/messages${params ? `?${params}` : ''}`, 'GET', undefined, cors);
       }
+
+      // Folio balance
       case 'admin-folio': {
         const resId = url.searchParams.get('reservationId');
         if (!resId) return errorResponse('MISSING_PARAM', 'Missing reservationId', 400, cors);
-        return proxyRequest(ADMIN_BASE, getAdminToken, `/accounting-api/reservations/${resId}/balance`, 'GET', undefined, cors);
+        return proxyRequest(OPEN_API_BASE, getOpenApiToken, `/accounting-api/reservations/${resId}/balance`, 'GET', undefined, cors);
       }
+
       default:
         return errorResponse('UNKNOWN_ACTION', `Unknown action: ${action}`, 400, cors);
     }
