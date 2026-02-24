@@ -1,7 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { guestyClient } from './client';
 import { guestyAdminClient } from './adminClient';
-import type { QuoteRequest } from './types';
+import type { QuoteRequest, RatePlan } from './types';
+
+// ── Rate Plans (V3 Booking Flow) ─────────────────────────────────────────────
+
+export const useRatePlans = (listingId: string | undefined) => {
+  return useQuery({
+    queryKey: ['ratePlans', listingId],
+    queryFn: () => guestyClient.getRatePlans(listingId!),
+    enabled: !!listingId,
+    staleTime: 30 * 60 * 1000, // 30 minutes
+  });
+};
 
 // ── Quote retrieval ────────────────────────────────────────────────────────────
 
@@ -152,5 +163,24 @@ export const useFolioBalance = (reservationId: string | undefined) => {
     queryKey: ['folio', reservationId],
     queryFn: () => guestyAdminClient.getFolioBalance(reservationId!),
     enabled: !!reservationId,
+  });
+};
+
+// ── V3 Booking Flow Hooks ─────────────────────────────────────────────────────
+
+export const useQuoteWithRatePlan = () => {
+  return useMutation({
+    mutationFn: (params: QuoteRequest) => guestyClient.createQuoteWithRatePlan(params),
+  });
+};
+
+export const useUpdateUpsellFees = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ quoteId, upsellFeeIds }: { quoteId: string; upsellFeeIds: string[] }) =>
+      guestyClient.updateUpsellFeesInQuote(quoteId, upsellFeeIds),
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(['quote', variables.quoteId], data);
+    },
   });
 };

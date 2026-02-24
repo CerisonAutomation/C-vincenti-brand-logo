@@ -260,7 +260,7 @@ export default function PropertyDetail() {
         {/* ══════════════════════════════════════════════
             CONTENT GRID
         ══════════════════════════════════════════════ */}
-        <div className="grid lg:grid-cols-3 gap-10">
+        <div className="grid lg:grid-cols-3 gap-10 max-w-7xl mx-auto">
           {/* ── Main content ── */}
           <div className="lg:col-span-2 space-y-10">
 
@@ -713,7 +713,7 @@ export default function PropertyDetail() {
                 <X size={20} />
               </button>
             </div>
-            <div className="section-container py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="section-container-wide py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {images.map((img, i) => (
                 <div
                   key={img.id}

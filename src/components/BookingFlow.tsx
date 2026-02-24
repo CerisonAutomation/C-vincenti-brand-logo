@@ -137,19 +137,19 @@ export default function BookingFlow({ listing, checkIn, checkOut, guests, onClos
   const isLoading = createQuote.isPending || createReservation.isPending || createInquiry.isPending;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/90 backdrop-blur-md"
         onClick={onClose}
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="relative w-full h-full sm:h-auto sm:max-h-[90vh] max-w-lg sm:max-w-xl md:max-w-2xl bg-card border-0 sm:border border-border rounded-none sm:rounded-2xl shadow-2xl overflow-hidden"
       >
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between p-5 border-b border-border/50 bg-card">
