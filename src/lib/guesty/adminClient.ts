@@ -27,7 +27,11 @@ async function request<T>(params: Record<string, string>, method: 'GET' | 'POST'
 class GuestyAdminClient {
   async getGlobalReservations(params: any = {}): Promise<AdminReservation[]> {
     const qp = new URLSearchParams(params).toString();
-    return request<AdminReservation[]>({ action: 'admin-reservations', params: qp });
+    return request<AdminReservation[]>({ action: 'open-reservations', params: qp });
+  }
+
+  async getReservation(reservationId: string): Promise<any> {
+    return request<any>({ action: 'open-reservation', reservationId });
   }
 
   async getMessages(params: any = {}): Promise<InboxMessage[]> {
@@ -37,11 +41,6 @@ class GuestyAdminClient {
 
   async getFolioBalance(reservationId: string): Promise<Folio> {
     return request<Folio>({ action: 'admin-folio', reservationId });
-  }
-
-  async getJournalEntries(params: any = {}): Promise<JournalEntry[]> {
-    const qp = new URLSearchParams(params).toString();
-    return request<JournalEntry[]>({ action: 'admin-journal', params: qp });
   }
 }
 
