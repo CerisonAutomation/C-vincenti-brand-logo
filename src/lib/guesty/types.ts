@@ -41,10 +41,14 @@ export type Amenity =
 
 export type ErrorCode =
   | 'NOT_FOUND' | 'FORBIDDEN' | 'WRONG_REQUEST_PARAMETERS' | 'LISTING_CALENDAR_BLOCKED'
-  | 'MIN_NIGHT_MISMATCH' | 'COUPON_NOT_FOUND' | 'COUPON_IS_DISABLED'
-  | 'COUPON_MIN_NIGHT_MISMATCH' | 'COUPON_MAXIMUM_USES_EXCEEDED'
-  | 'COUPON_EXPIRATION_DATE_EXCEEDED' | 'COUPON_OUT_OF_CHECKIN_RANGE'
-  | 'COUPON_UNEXPECTED_ERROR' | 'CREATE_RESERVATION_ERROR' | 'WRONG_PAYMENT_CONFIG';
+  | 'MIN_NIGHT_MISMATCH' | 'MAX_NIGHT_EXCEEDED' | 'ADVANCE_BOOKING_NOTICE' | 'WINDOW_NOT_OPEN'
+  | 'GUEST_COUNT_EXCEEDED' | 'INSUFFICIENT_GUESTS' | 'PRICE_CHANGED' | 'PRICING_ERROR'
+  | 'COUPON_NOT_FOUND' | 'COUPON_IS_DISABLED' | 'COUPON_MIN_NIGHT_MISMATCH' | 'COUPON_MAXIMUM_USES_EXCEEDED'
+  | 'COUPON_EXPIRATION_DATE_EXCEEDED' | 'COUPON_OUT_OF_CHECKIN_RANGE' | 'COUPON_UNEXPECTED_ERROR'
+  | 'CREATE_RESERVATION_ERROR' | 'WRONG_PAYMENT_CONFIG' | 'PAYMENT_FAILED' | 'PAYMENT_TOKEN_INVALID'
+  | 'UNAUTHORIZED' | 'TOKEN_EXPIRED' | 'RATE_LIMIT_EXCEEDED' | 'QUOTA_EXCEEDED'
+  | 'SERVICE_UNAVAILABLE' | 'INTERNAL_ERROR' | 'LISTING_NOT_FOUND' | 'LISTING_UNAVAILABLE'
+  | 'MISSING_REQUIRED_FIELD' | 'INVALID_DATE_RANGE';
 
 export interface Address {
   city: string;
@@ -199,13 +203,77 @@ export interface QuoteRequest {
   checkOutDateLocalized: string;
   guestsCount: number;
   coupons?: string[];
+  ratePlanId?: string; // For V3 Booking Flow - specific rate plan
+  upsellFees?: string[]; // Optional upsell fees to include
 }
 
 export interface Quote {
   _id: string;
+  listingId: string;
+  ratePlanId?: string;
+  ratePlanName?: string;
+  checkIn: string;
+  checkOut: string;
+  guestsCount: number;
   totalPrice: number;
   currency: string;
-  priceBreakdown: Array<{ type: string; value: number; description: string }>;
+  priceBreakdown: QuotePriceBreakdown[];
+  taxes: QuoteTax[];
+  coupons?: AppliedCoupon[];
+  validUntil?: string; // Quote expiration
+  upsellFees?: UpsellFeeQuote[];
+}
+
+export interface QuotePriceBreakdown {
+  type: 'base' | 'extra_guest' | 'cleaning_fee' | 'pet_fee' | 'discount' | 'subtotal' | 'total';
+  value: number;
+  description: string;
+  quantity?: number;
+  unitPrice?: number;
+}
+
+export interface QuoteTax {
+  name: string;
+  amount: number;
+  type: TaxType;
+  quantifier: 'NIGHT' | 'GUEST' | 'STAY' | 'PER_GUEST_PER_NIGHT';
+  includedInBase?: boolean;
+}
+
+export interface AppliedCoupon {
+  code: string;
+  type: 'fixed' | 'percentage';
+  value: number;
+  description: string;
+  discountAmount: number;
+}
+
+export interface UpsellFeeQuote {
+  _id: string;
+  title: string;
+  description: string;
+  amount: number;
+  currency: string;
+  selected: boolean;
+}
+
+export interface RatePlan {
+  _id: string;
+  name: string;
+  description?: string;
+  isDefault: boolean;
+  minNights: number;
+  maxNights?: number;
+  cancellationPolicy?: CancellationPolicy;
+}
+
+export interface CancellationPolicy {
+  type: 'flexible' | 'moderate' | 'strict' | 'custom';
+  text: string;
+  penalties?: Array<{
+    daysBefore: number;
+    penaltyPercent: number;
+  }>;
 }
 
 export interface City {
