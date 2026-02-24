@@ -1,4 +1,3 @@
-import { supabase } from '@/integrations/supabase/client';
 import type {
   Listing, PropertyType, Amenity, Quote, QuoteRequest,
   City, CalendarDay, PaymentProvider, Review, UpsellFee,
@@ -71,16 +70,49 @@ class GuestyClient {
     return request<CalendarDay[]>({ action: 'calendar', id: listingId, from, to });
   }
 
+  /**
+   * Create a reservation quote (Reservation Quote Flow).
+   * POST /reservations/quotes
+   * @see https://booking-api-docs.guesty.com/docs/new-reservation-creation-flow
+   */
   async createQuote(params: QuoteRequest): Promise<Quote> {
-    const body = { ...params, coupons: params.coupons?.join(',') };
-    return request<Quote>({ action: 'quote' }, 'POST', body);
+    return request<Quote>({ action: 'quote' }, 'POST', {
+      listingId: params.listingId,
+      checkInDateLocalized: params.checkInDateLocalized,
+      checkOutDateLocalized: params.checkOutDateLocalized,
+      guestsCount: params.guestsCount,
+      ...(params.coupons?.length ? { coupon: params.coupons[0] } : {}),
+    });
+  }
+
+  /**
+   * Retrieve a quote by ID.
+   * GET /reservations/quotes/:quoteId
+   */
+  async getQuote(quoteId: string): Promise<Quote> {
+    return request<Quote>({ action: 'quote-get', quoteId });
   }
 
   async updateCouponInQuote(quoteId: string, coupon: string): Promise<Quote> {
     return request<Quote>({ action: 'quote-coupon', quoteId }, 'POST', { coupon });
   }
 
-  async createInstantReservation(quoteId: string, guestData: any): Promise<ReservationResponse> {
+  /**
+   * Create instant reservation from a quote.
+   * POST /reservations/quotes/:quoteId/instant
+   * @see https://booking-api-docs.guesty.com/docs/new-reservation-creation-flow
+   */
+  async createInstantReservation(quoteId: string, guestData: {
+    guest: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+    };
+    payment?: {
+      token: string;
+    };
+  }): Promise<ReservationResponse> {
     return request<ReservationResponse>({ action: 'instant-booking', quoteId }, 'POST', guestData);
   }
 
@@ -103,6 +135,14 @@ class GuestyClient {
 
   async getPaymentProvider(listingId: string): Promise<PaymentProvider> {
     return request<PaymentProvider>({ action: 'payment-provider', id: listingId });
+  }
+
+  /**
+   * Get reservation details via Open API.
+   * Used for confirmation page after booking.
+   */
+  async getReservation(reservationId: string): Promise<any> {
+    return request<any>({ action: 'open-reservation', reservationId });
   }
 }
 

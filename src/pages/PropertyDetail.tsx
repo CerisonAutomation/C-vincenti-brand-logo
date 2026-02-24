@@ -11,7 +11,6 @@ import {
 import Layout from '@/components/Layout';
 import { useListing, useListingCalendar, useReviews } from '@/lib/guesty';
 import { normalizeListingDetail, type NormalizedListingDetail } from '@/lib/guesty/normalizer';
-import { buildCheckoutUrl } from '@/lib/settings';
 import { BRAND_FULL } from '@/lib/brand';
 import { formatCurrency } from '@/lib/content';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -131,9 +130,6 @@ export default function PropertyDetail() {
   const nights = checkIn && checkOut ? Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
   const totalAmenities = property.amenities.length;
-
-  // Build checkout URL
-  const checkoutUrl = buildCheckoutUrl(property.id, checkIn, checkOut, guests);
 
   // Calendar
   const availabilityMap = new Map<string, { status: string; price: number; minNights: number }>();
@@ -657,9 +653,9 @@ export default function PropertyDetail() {
                   </div>
                 )}
 
-                {/* CTA — same-tab Guesty checkout */}
-                <a
-                  href={checkIn && checkOut ? checkoutUrl : undefined}
+                {/* CTA — In-app checkout */}
+                <Link
+                  to={checkIn && checkOut ? `/properties/${property.id}/checkout?checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}` : '#'}
                   onClick={(e) => {
                     if (!checkIn || !checkOut) { e.preventDefault(); }
                   }}
@@ -674,7 +670,7 @@ export default function PropertyDetail() {
                   ) : (
                     'Select dates to book'
                   )}
-                </a>
+                </Link>
 
                 <p className="text-[10px] text-muted-foreground text-center flex items-center justify-center gap-1">
                   <Shield size={10} /> Secure booking · No charge until confirmed

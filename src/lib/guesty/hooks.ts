@@ -3,6 +3,16 @@ import { guestyClient } from './client';
 import { guestyAdminClient } from './adminClient';
 import type { QuoteRequest } from './types';
 
+// ── Quote retrieval ────────────────────────────────────────────────────────────
+
+export const useQuote = (quoteId: string | undefined) => {
+  return useQuery({
+    queryKey: ['quote', quoteId],
+    queryFn: () => guestyClient.getQuote(quoteId!),
+    enabled: !!quoteId,
+  });
+};
+
 // ── Listings ──────────────────────────────────────────────────────────────────
 
 export const useListings = (params: Parameters<typeof guestyClient.getListings>[0] = {}) => {

@@ -2,16 +2,20 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Logo } from "./Logo";
+import logoWordmark from "@/assets/logo-wordmark.png";
 
 const NAV_LINKS = [
   { label: "Owners", href: "/owners", children: [
-    { label: "How It Works", href: "/owners" },
+    { label: "Overview", href: "/owners" },
     { label: "Pricing", href: "/owners/pricing" },
     { label: "Get Free Estimate", href: "/owners/estimate" },
     { label: "Our Standards", href: "/owners/standards" },
+    { label: "FAQs", href: "/faq" },
   ]},
-  { label: "Properties", href: "/properties" },
+  { label: "Stays", href: "/properties", children: [
+    { label: "Browse stays", href: "/properties" },
+    { label: "Book direct", href: "/book" },
+  ]},
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
@@ -23,8 +27,8 @@ interface NavbarProps {
 export default function Navbar({ onOpenWizard }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [ownersOpen, setOwnersOpen] = useState(false);
-  const [mobileOwnersOpen, setMobileOwnersOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState<string | null>(null);
   const location = useLocation();
 
   const handleScroll = useCallback(() => {
@@ -43,7 +47,7 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
 
   useEffect(() => {
     setDrawerOpen(false);
-    setOwnersOpen(false);
+    setOpenDropdown(null);
   }, [location.pathname]);
 
   const isActive = (href: string) => location.pathname.startsWith(href) && href !== '/';
@@ -61,8 +65,8 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
       >
         <nav className="section-container flex items-center justify-between h-16 sm:h-20">
           {/* Logo */}
-          <Link to="/" aria-label="Home">
-            <Logo size="sm" />
+          <Link to="/" aria-label="Home" className="flex-shrink-0">
+            <img src={logoWordmark} alt="Christiano Vincenti Property Management" className="h-10 sm:h-12 w-auto" />
           </Link>
 
           {/* Desktop nav */}
@@ -72,8 +76,8 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                 <div
                   key={link.href}
                   className="relative"
-                  onMouseEnter={() => setOwnersOpen(true)}
-                  onMouseLeave={() => setOwnersOpen(false)}
+                  onMouseEnter={() => setOpenDropdown(link.label)}
+                  onMouseLeave={() => setOpenDropdown(null)}
                 >
                   <button
                     className={`flex items-center gap-1 text-[13px] font-medium px-4 py-2 rounded-full transition-colors ${
@@ -81,10 +85,10 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                     }`}
                   >
                     {link.label}
-                    <ChevronDown size={13} className={`transition-transform ${ownersOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown size={13} className={`transition-transform ${openDropdown === link.label ? 'rotate-180' : ''}`} />
                   </button>
                   <AnimatePresence>
-                    {ownersOpen && (
+                    {openDropdown === link.label && (
                       <motion.div
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -127,10 +131,16 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
             <div className="w-px h-5 bg-border/50 mx-3" />
 
             <Link
-              to="/book"
-              className="ml-1 px-6 py-2.5 text-[13px] font-semibold bg-primary text-primary-foreground rounded-full hover:opacity-90 transition-opacity"
+              to="/owners/estimate"
+              className="ml-1 px-5 py-2.5 text-[13px] font-semibold border border-primary/40 text-primary rounded-full hover:bg-primary/10 transition-colors"
             >
-              Book Now
+              Free Assessment
+            </Link>
+            <Link
+              to="/properties"
+              className="ml-2 px-6 py-2.5 text-[13px] font-semibold bg-primary text-primary-foreground rounded-full hover:opacity-90 transition-opacity"
+            >
+              Book a Stay
             </Link>
           </div>
 
@@ -166,7 +176,7 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
               aria-label="Navigation menu"
             >
               <div className="flex items-center justify-between p-5 border-b border-border/50">
-                <Logo size="sm" />
+                <img src={logoWordmark} alt="CV" className="h-8 w-auto" />
                 <button onClick={() => setDrawerOpen(false)} aria-label="Close menu" className="p-1 text-muted-foreground hover:text-foreground">
                   <X size={20} />
                 </button>
@@ -177,16 +187,16 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                   link.children ? (
                     <div key={link.href}>
                       <button
-                        onClick={() => setMobileOwnersOpen(!mobileOwnersOpen)}
+                        onClick={() => setMobileOpen(mobileOpen === link.label ? null : link.label)}
                         className={`w-full flex items-center justify-between text-[15px] font-medium py-3 px-3 rounded-lg transition-colors ${
                           isActive(link.href) ? "text-primary bg-primary/5" : "text-foreground hover:bg-accent/50"
                         }`}
                       >
                         {link.label}
-                        <ChevronDown size={15} className={`transition-transform ${mobileOwnersOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown size={15} className={`transition-transform ${mobileOpen === link.label ? 'rotate-180' : ''}`} />
                       </button>
                       <AnimatePresence>
-                        {mobileOwnersOpen && (
+                        {mobileOpen === link.label && (
                           <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
@@ -223,10 +233,16 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
 
                 <div className="mt-auto pt-6 space-y-3">
                   <Link
-                    to="/book"
+                    to="/owners/estimate"
+                    className="block w-full py-3.5 text-sm font-semibold border border-primary/40 text-primary rounded-xl text-center hover:bg-primary/10 transition-colors"
+                  >
+                    Free Assessment
+                  </Link>
+                  <Link
+                    to="/properties"
                     className="block w-full py-3.5 text-sm font-semibold bg-primary text-primary-foreground rounded-xl text-center hover:opacity-90 transition-opacity"
                   >
-                    Book Now
+                    Book a Stay
                   </Link>
                 </div>
               </div>
