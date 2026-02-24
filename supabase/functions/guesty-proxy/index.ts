@@ -164,10 +164,10 @@ serve(async (req) => {
       // BOOKING ENGINE API ENDPOINTS
       // ══════════════════════════════════════════════
 
-      // Search listings (per BE API docs: GET /v1/search)
+      // Search listings (per BE API docs: GET /me/listings with search params)
       case 'search': {
         const params = url.searchParams.get('params') || '';
-        return proxyRequest('https://booking-api.guesty.com', getBEToken, `/v1/search?${params}`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings?fields=${LISTING_LIST_FIELDS}&${params}`, 'GET', undefined, cors);
       }
 
       // List my listings (GET /me/listings)
@@ -245,6 +245,20 @@ serve(async (req) => {
         const id = url.searchParams.get('id');
         if (!id) return errorResponse('MISSING_PARAM', 'Missing id', 400, cors);
         return proxyRequest(BE_API_BASE, getBEToken, `/me/listings/${id}/payment-provider`, 'GET', undefined, cors);
+      }
+
+      // Rate plans (GET /me/listings/:id/rate-plans) - V3 Booking Flow
+      case 'rate-plans': {
+        const id = url.searchParams.get('id');
+        if (!id) return errorResponse('MISSING_PARAM', 'Missing id', 400, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings/${id}/rate-plans`, 'GET', undefined, cors);
+      }
+
+      // Upsell fees update in quote (POST /reservations/quotes/:quoteId/upsell-fees)
+      case 'quote-upsell-fees': {
+        const quoteId = url.searchParams.get('quoteId');
+        if (!quoteId) return errorResponse('MISSING_PARAM', 'Missing quoteId', 400, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/reservations/quotes/${quoteId}/upsell-fees`, 'POST', body, cors);
       }
 
       // Payout schedule (GET /reservations/payouts/list)

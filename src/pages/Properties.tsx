@@ -193,7 +193,7 @@ export default function Properties() {
 
           {/* Loading skeletons */}
           {isLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[1,2,3,4,5,6].map(i => (
                 <div key={i} className="rounded-2xl border border-border/50 overflow-hidden bg-card">
                   <Skeleton className="aspect-[4/3]" />
@@ -209,7 +209,7 @@ export default function Properties() {
 
           {/* Grid */}
           {!isLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filtered.map((property, i) => (
                 <Link
                   to={buildDetailLink(property.id)}

@@ -137,7 +137,22 @@
   }
 
   .section-container {
-    @apply max-w-6xl mx-auto px-5 sm:px-8;
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Full-bleed sections for immersive experience */
+  .section-full-bleed {
+    @apply w-full max-w-none;
+  }
+
+  /* Extended width for property listings */
+  .section-container-wide {
+    @apply max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Hero sections */
+  .section-hero {
+    @apply w-full min-h-[calc(100vh-5rem)] flex items-center justify-center;
   }
 
   .micro-type {
