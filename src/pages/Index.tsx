@@ -2,7 +2,8 @@ import { lazy, Suspense, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WizardModal from "@/components/WizardModal";
-import { SignedIn, UserButton, SignedOut, SignInButton, SignUpButton } from '@clerk/clerk-react';
+import { SignedIn, SignedOut } from '@/components/auth/AuthGuard';
+import { SignInButton, SignUpButton, UserButton } from '@/components/auth/AuthButtons';
 
 // Lazy load Hero for better performance
 const Hero = lazy(() => import("@/components/Hero"));
@@ -18,15 +19,6 @@ const Index = () => {
       </a>
       <Navbar onOpenWizard={() => setWizardOpen(true)} />
       <main id="main" role="main">
-        <div>
-          <SignedOut>
-            <SignInButton />
-            <SignUpButton />
-          </SignedOut>
-          <SignedIn>
-            <UserButton />
-          </SignedIn>
-        </div>
         <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
           <Hero onOpenWizard={() => setWizardOpen(true)} />
         </Suspense>

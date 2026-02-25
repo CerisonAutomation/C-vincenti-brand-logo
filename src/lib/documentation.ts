@@ -3,6 +3,8 @@
  * Architecture Decision Records and comprehensive documentation
  */
 
+import { log } from '@/lib/logger';
+
 // Architecture Decision Records (ADR)
 export class ADRSystem {
   private static adrs: ADR[] = [];
@@ -121,7 +123,7 @@ export class APIDocumentation {
     return this.endpoints;
   }
 
-  static generateOpenAPI(endpoint: APIEndpoint): void {
+  static generateOpenAPI(endpoint: APIEndpoint): any {
     const openAPI = {
       openapi: '3.0.0',
       info: {
@@ -141,8 +143,6 @@ export class APIDocumentation {
         }
       }
     };
-
-import { log } from '@/lib/logger';
 
     log.info('Generated OpenAPI spec', { endpoint: endpoint.path });
     return openAPI;

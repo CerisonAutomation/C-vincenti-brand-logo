@@ -1,8 +1,54 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowRight, FileText, Key } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import heroMalta from "@/assets/hero-malta.jpg";
 import heroResidential from "@/assets/hero-residential.jpg";
+
+// Lazy image component with intersection observer
+const LazyImage = ({ src, alt, className, onLoad }: {
+  src: string;
+  alt: string;
+  className: string;
+  onLoad?: () => void;
+}) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <img
+      ref={imgRef}
+      src={isInView ? src : undefined}
+      alt={alt}
+      className={className}
+      loading="lazy"
+      onLoad={() => {
+        setIsLoaded(true);
+        onLoad?.();
+      }}
+      style={{ opacity: isLoaded ? 1 : 0, transition: 'opacity 0.3s ease' }}
+    />
+  );
+};
 
 interface HeroProps {
   onOpenWizard: () => void;
@@ -15,7 +61,12 @@ export default function Hero({ onOpenWizard }: HeroProps) {
       <div aria-label="Owner services section" className="relative w-full md:w-1/2 flex flex-col justify-between bg-background overflow-hidden min-h-[50vh] md:min-h-screen">
         {/* Subtle background image overlay */}
         <div className="absolute inset-0">
-          <img src={heroMalta} alt="" className="w-full h-full object-cover opacity-[0.06]" aria-hidden="true" />
+          <LazyImage
+            src={heroMalta}
+            alt=""
+            className="w-full h-full object-cover opacity-[0.06]"
+            aria-hidden="true"
+          />
         </div>
 
         <div className="relative z-10 flex flex-col justify-center flex-1 px-8 sm:px-12 lg:px-16 py-20 md:py-0">
@@ -69,7 +120,7 @@ export default function Hero({ onOpenWizard }: HeroProps) {
       <div aria-label="Guest services section" className="relative w-full md:w-1/2 flex flex-col justify-between overflow-hidden min-h-[50vh] md:min-h-screen">
         {/* Full background image */}
         <div className="absolute inset-0">
-          <img
+          <LazyImage
             src={heroResidential}
             alt="Luxury Mediterranean residence with sea view — Malta"
             className="w-full h-full object-cover"

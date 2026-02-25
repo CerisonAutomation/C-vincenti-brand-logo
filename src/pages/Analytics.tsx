@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
@@ -172,7 +171,7 @@ export default function Analytics() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {analytics?.bookingSources.map((entry, index) => (
+                  {analytics?.bookingSources.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

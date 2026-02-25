@@ -11,14 +11,12 @@ interface Message {
 }
 
 interface AIChatAssistantProps {
-  propertyId?: string;
   isOpen: boolean;
   onClose: () => void;
   className?: string;
 }
 
 export const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
-  propertyId,
   isOpen,
   onClose,
   className = '',

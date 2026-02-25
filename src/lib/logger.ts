@@ -91,14 +91,20 @@ class Logger {
 
     let sessionId = sessionStorage.getItem('sessionId');
     if (!sessionId) {
-      sessionId = crypto.randomUUID();
+      // Polyfill for crypto.randomUUID if not available
+      sessionId = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : 'fallback-' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
       sessionStorage.setItem('sessionId', sessionId);
     }
     return sessionId;
   }
 
   private getRequestId(): string {
-    return crypto.randomUUID();
+    // Polyfill for crypto.randomUUID if not available
+    return typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'req-' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
   }
 
   private output(entry: LogEntry): void {

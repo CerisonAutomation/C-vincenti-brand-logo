@@ -27,8 +27,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Guesty API Configuration
-const FN_URL = import.meta.env.VITE_GUESTY_FN_URL || 'https://functions.supabase.co';
+const FN_URL = import.meta.env.VITE_GUESTY_FN_URL;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+if (!FN_URL) {
+  throw new Error('Missing VITE_GUESTY_FN_URL environment variable');
+}
 
 // Enhanced Error Recovery System with AI-powered suggestions
 const ERROR_DICTIONARY: Record<ErrorCode, { message: string; recoveryAction: string; aiSuggestion?: string }> = {

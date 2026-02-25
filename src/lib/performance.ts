@@ -28,7 +28,7 @@ export class PerformanceMonitor {
   private static handleMetric(name: string, metric: any): void {
     const value = metric.value;
     const budget = this.budgets[name as keyof typeof this.budgets];
-    
+
     if (budget && value > budget) {
       console.warn(`Performance budget exceeded for ${name}: ${value} > ${budget}`);
       this.reportPerformanceIssue(name, value, budget);
@@ -118,7 +118,7 @@ export class ResourceOptimizer {
 
   static lazyLoadImages(): void {
     const images = document.querySelectorAll('img[data-src]');
-    
+
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -165,7 +165,7 @@ export class MemoryManager {
     if ('memory' in performance) {
       const memory = (performance as any).memory;
       const used = memory.usedJSHeapSize;
-      
+
       if (used > this.memoryThreshold) {
         console.warn(`High memory usage detected: ${Math.round(used / 1024 / 1024)}MB`);
         this.forceGarbageCollection();
@@ -176,10 +176,10 @@ export class MemoryManager {
   private static cleanupUnusedResources(): void {
     // Cleanup unused event listeners
     this.cleanupEventListeners();
-    
+
     // Cleanup unused timers
     this.cleanupTimers();
-    
+
     // Cleanup unused DOM nodes
     this.cleanupDOMNodes();
   }
@@ -245,21 +245,21 @@ export class NetworkOptimizer {
   static implementRetryLogic(): void {
     // Override fetch to include retry logic
     const originalFetch = window.fetch;
-    
+
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       let retries = 3;
-      
+
       while (retries > 0) {
         try {
           const response = await originalFetch(input, init);
           if (response.ok) return response;
-          
+
           if (response.status >= 500) {
             retries--;
             await new Promise(resolve => setTimeout(resolve, 1000));
             continue;
           }
-          
+
           return response;
         } catch (error) {
           retries--;
@@ -267,7 +267,7 @@ export class NetworkOptimizer {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
-      
+
       throw new Error('Max retries exceeded');
     };
   }
@@ -281,15 +281,15 @@ export class RenderingOptimizer {
 
     const renderLoop = (timestamp: number) => {
       const deltaTime = timestamp - lastRenderTime;
-      
+
       if (deltaTime >= 16.67) { // ~60fps
         // Perform render optimizations
         this.optimizeCSSOM();
         this.optimizeLayout();
-        
+
         lastRenderTime = timestamp;
       }
-      
+
       animationFrameId = requestAnimationFrame(renderLoop);
     };
 
@@ -304,7 +304,7 @@ export class RenderingOptimizer {
   private static optimizeCSSOM(): void {
     // Minimize CSSOM reads/writes
     const styleSheets = document.styleSheets;
-    
+
     for (let i = 0; i < styleSheets.length; i++) {
       try {
         const rules = styleSheets[i].cssRules;
@@ -326,7 +326,7 @@ export class RenderingOptimizer {
     elements.forEach(element => {
       const rect = element.getBoundingClientRect();
       if (rect.width > 0) readCount++;
-      
+
       if (element instanceof HTMLElement) {
         element.style.transform = element.style.transform; // Force layout
         writeCount++;
@@ -341,7 +341,7 @@ export class RenderingOptimizer {
   static implementVirtualization(): void {
     // Virtualization for long lists
     const lists = document.querySelectorAll('[data-virtualize]');
-    
+
     lists.forEach(list => {
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -372,10 +372,8 @@ export class RenderingOptimizer {
 export class BundleAnalyzer {
   static analyzeBundle(): void {
     if (import.meta.env.DEV) {
-      import('vite-plugin-visualizer').then(({ visualizer }) => {
-        // Bundle analysis would be done during build
-        console.log('Bundle analysis available in build mode');
-      });
+      // Bundle analysis is configured in vite.config.ts with rollup-plugin-visualizer
+      console.log('Bundle analysis available in build mode');
     }
   }
 
@@ -384,7 +382,7 @@ export class BundleAnalyzer {
     window.addEventListener('load', () => {
       const resources = performance.getEntriesByType('resource');
       const chunks = resources.filter(r => r.name.includes('.js'));
-      
+
       chunks.forEach(chunk => {
         console.log(`${chunk.name}: ${chunk.duration}ms`);
       });

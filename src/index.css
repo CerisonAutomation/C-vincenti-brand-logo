@@ -6,58 +6,61 @@
 
 @layer base {
   :root {
-    --background: 220 20% 4%;
-    --foreground: 40 20% 95%;
+    /* Ink-night background - deep, pure black */
+    --background: 220 15% 2%;
+    --foreground: 40 15% 98%;
 
-    --card: 220 18% 7%;
-    --card-foreground: 40 20% 95%;
+    /* Subtle card surfaces with minimal contrast */
+    --card: 220 12% 4%;
+    --card-foreground: 40 15% 95%;
 
-    --popover: 220 18% 7%;
-    --popover-foreground: 40 20% 95%;
+    /* Refined gold accents - softer, more elegant */
+    --primary: 45 85% 58%;
+    --primary-foreground: 220 15% 2%;
 
-    --primary: 42 76% 55%;
-    --primary-foreground: 220 20% 4%;
+    /* Minimal secondary surfaces */
+    --secondary: 220 10% 6%;
+    --secondary-foreground: 40 12% 92%;
 
-    --secondary: 220 15% 12%;
-    --secondary-foreground: 40 20% 90%;
+    /* Muted elements */
+    --muted: 220 8% 8%;
+    --muted-foreground: 220 6% 65%;
 
-    --muted: 220 15% 12%;
-    --muted-foreground: 220 10% 55%;
+    /* Subtle accent */
+    --accent: 220 10% 10%;
+    --accent-foreground: 40 15% 95%;
 
-    --accent: 220 15% 15%;
-    --accent-foreground: 40 20% 95%;
+    /* Error states */
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 40 15% 98%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 40 20% 95%;
+    /* Barely visible borders */
+    --border: 220 8% 12%;
+    --input: 220 10% 8%;
+    --ring: 45 85% 58%;
 
-    --border: 220 15% 15%;
-    --input: 220 15% 15%;
-    --ring: 42 76% 55%;
+    /* Larger radius for elegance */
+    --radius: 0.75rem;
 
-    --radius: 0.5rem;
+    /* Refined gold palette */
+    --luxury-gold: 45 85% 58%;
+    --luxury-gold-light: 45 85% 68%;
+    --luxury-gold-dark: 45 85% 45%;
 
-    --luxury-gold: 42 76% 55%;
-    --luxury-gold-light: 42 76% 65%;
-    --luxury-gold-dark: 42 76% 40%;
+    /* Subtle gradients only where needed */
+    --gradient-subtle: linear-gradient(135deg, hsl(220, 12%, 4%), hsl(220, 10%, 6%));
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(45, 85%, 58%), hsl(45, 85%, 65%));
+    --shadow-gold-subtle: 0 4px 24px -4px hsla(45, 85%, 58%, 0.15);
 
-    --gradient-hero-overlay: linear-gradient(
-      180deg,
-      hsla(220, 20%, 4%, 0.25) 0%,
-      hsla(220, 20%, 4%, 0.55) 40%,
-      hsla(220, 20%, 4%, 0.90) 100%
-    );
-    --gradient-gold: linear-gradient(135deg, hsl(42, 76%, 55%), hsl(42, 76%, 70%));
-    --shadow-gold: 0 8px 32px -8px hsla(42, 76%, 55%, 0.25);
-    --surface-overlay: hsla(220, 20%, 4%, 0.85);
-
-    --sidebar-background: 220 18% 7%;
-    --sidebar-foreground: 40 20% 95%;
-    --sidebar-primary: 42 76% 55%;
-    --sidebar-primary-foreground: 220 20% 4%;
-    --sidebar-accent: 220 15% 12%;
-    --sidebar-accent-foreground: 40 20% 95%;
-    --sidebar-border: 220 15% 15%;
-    --sidebar-ring: 42 76% 55%;
+    /* Sidebar colors */
+    --sidebar-background: 220 12% 4%;
+    --sidebar-foreground: 40 15% 95%;
+    --sidebar-primary: 45 85% 58%;
+    --sidebar-primary-foreground: 220 15% 2%;
+    --sidebar-accent: 220 10% 6%;
+    --sidebar-accent-foreground: 40 15% 95%;
+    --sidebar-border: 220 8% 12%;
+    --sidebar-ring: 45 85% 58%;
   }
 }
 
@@ -69,10 +72,28 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
   }
 
   html {
     scroll-behavior: smooth;
+  }
+
+  /* Premium typography with high whitespace */
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  h1 { @apply text-4xl md:text-5xl font-light; }
+  h2 { @apply text-3xl md:text-4xl font-light; }
+  h3 { @apply text-2xl md:text-3xl font-normal; }
+  h4 { @apply text-xl md:text-2xl font-normal; }
+
+  p {
+    @apply leading-relaxed;
+    margin-bottom: 1.5rem;
   }
 }
 
@@ -102,23 +123,17 @@
     @apply bg-card/80 backdrop-blur-xl border border-border/50;
   }
 
-  /* Satin surface — silky-smooth card effect */
+  /* Premium satin surface — refined, elegant card effect */
   .satin-surface {
-    background: linear-gradient(
-      160deg,
-      hsl(var(--card)) 0%,
-      hsl(var(--card) / 0.85) 40%,
-      hsl(var(--card) / 0.95) 100%
-    );
+    background: hsl(var(--card));
     box-shadow:
-      inset 0 1px 0 hsl(var(--foreground) / 0.04),
-      inset 0 -1px 0 hsl(var(--background) / 0.3),
-      0 4px 24px -4px hsl(var(--background) / 0.5);
-    border: 1px solid hsl(var(--border) / 0.5);
-    backdrop-filter: blur(12px);
+      0 1px 3px hsla(var(--background), 0.2),
+      0 1px 2px hsla(var(--background), 0.1);
+    border: 1px solid hsl(var(--border));
+    backdrop-filter: blur(8px);
   }
 
-  /* Satin glow — subtle radial highlight */
+  /* Subtle satin glow — minimal radial highlight */
   .satin-glow {
     position: relative;
   }
@@ -130,29 +145,27 @@
     border-radius: inherit;
     background: radial-gradient(
       ellipse at 30% 20%,
-      hsl(var(--primary) / 0.04) 0%,
-      transparent 70%
+      hsla(var(--primary), 0.03) 0%,
+      transparent 60%
     );
     pointer-events: none;
   }
 
   .section-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-7xl mx-auto px-6 sm:px-8 lg:px-12;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
   }
 
-  /* Full-bleed sections for immersive experience */
-  .section-full-bleed {
-    @apply w-full max-w-none;
+  /* High whitespace sections */
+  .section-spacious {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
   }
 
-  /* Extended width for property listings */
-  .section-container-wide {
-    @apply max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8;
-  }
-
-  /* Hero sections */
-  .section-hero {
-    @apply w-full min-h-[calc(100vh-5rem)] flex items-center justify-center;
+  .section-extra-spacious {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
   }
 
   .micro-type {
