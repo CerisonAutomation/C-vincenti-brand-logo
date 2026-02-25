@@ -4,7 +4,6 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
-import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -19,21 +18,19 @@ export default defineConfig(({ mode }) => ({
       'X-Frame-Options': 'DENY',
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.clerk.com https://*.supabase.co https://*.clerk.accounts.dev; frame-src 'none';",
-      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-      'Cache-Control': 'public, max-age=31536000, immutable'
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), accelerometer=(), gyroscope=(), ambient-light-sensor=(), autoplay=(), encrypted-media=(), fullscreen=(), picture-in-picture=()',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://api.clerk.com https://*.supabase.co https://*.clerk.accounts.dev https://*.stripe.com wss://*.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;",
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+      'Cache-Control': 'public, max-age=31536000, immutable',
     } : {},
   },
   plugins: [
-    react({}),
-    ViteImageOptimizer(),
-    visualizer({
-      filename: 'dist/stats.html',
-      open: true,
-      gzipSize: true,
-      brotliSize: true,
+    react({
+      jsxRuntime: 'automatic',
     }),
+    ViteImageOptimizer(),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
@@ -76,44 +73,78 @@ export default defineConfig(({ mode }) => ({
         ],
       },
     }),
-    mode === "development" && componentTagger()
-  ].filter(Boolean),
+    ...(mode === "development" ? [componentTagger()] : []),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
   build: {
-    // Performance Budget: initialJS < 150KB, totalJS < 500KB, LCP < 2.5s, FID < 100ms, CLS < 0.1
     assetsInlineLimit: 4096, // 4KB - inline small images
     cssCodeSplit: true,
+    performance: {
+      hints: 'warning',
+      maxAssetSize: 100 * 1024, // 100KB - assets (VITE EXPERT RULES)
+      maxEntrypointSize: 100 * 1024, // 100KB - initial JS (VITE EXPERT RULES)
+    },
     rollupOptions: {
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            // Keep React in main bundle to prevent hook timing issues
-            if (/react/.test(id)) return undefined;
+            // Keep React minimal for faster hydration
+            if (/react/.test(id)) return 'react-core';
 
-            // UI library (RADIX is HUGE - split each component)
+            // Aggressive UI framework splitting - split each component library
             if (/@radix-ui/.test(id)) {
               const component = id.match(/@radix-ui\/react-(\w+)/)?.[1];
               return `radix-${component}`;
             }
-            // Heavy libraries
-            if (/recharts|framer-motion/.test(id)) return 'heavy-vendor';
-            // Other vendors
+
+            // Heavy libraries - isolate completely
+            if (/framer-motion/.test(id)) return 'framer-motion-vendor';
+            if (/recharts/.test(id)) return 'recharts-vendor';
+            if (/leaflet/.test(id)) return 'leaflet-vendor';
+            if (/three/.test(id)) return 'three-vendor';
+
+            // Utility libraries - group by function
             if (/lucide-react/.test(id)) return 'icons-vendor';
             if (/@tanstack/.test(id)) return 'query-vendor';
+            if (/@supabase/.test(id)) return 'supabase-vendor';
+            if (/@clerk/.test(id)) return 'clerk-vendor';
+            if (/@sentry/.test(id)) return 'sentry-vendor';
+
             return 'vendor';
           }
-          // App code: Split by feature
-          if (/pages\/Admin/.test(id)) return 'admin';
-          if (/pages\/Properties/.test(id)) return 'properties';
+
+          // Aggressive page-level splitting
+          if (/pages\/Admin/.test(id)) return 'admin-pages';
+          if (/pages\/PricingPage/.test(id)) return 'pricing-pages';
+          if (/pages\/Properties/.test(id)) return 'properties-pages';
+          if (/pages\/(QuotesPage|ReservationsPage)/.test(id)) return 'admin-portal';
+          if (/pages\/(Checkout|Book)/.test(id)) return 'booking-flow';
+
+          // Template system splitting - split by feature blocks
+          if (/components\/templates\/.*Template/.test(id)) return 'page-templates';
+          if (/components\/blocks\/HeroBlock/.test(id)) return 'block-hero';
+          if (/components\/blocks\/(FeatureBlock|PricingBlock|GalleryBlock)/.test(id)) return 'block-content-heavy';
+          if (/components\/blocks\/(ContentBlock|StatsBlock|TestimonialBlock)/.test(id)) return 'block-content-light';
+          if (/components\/blocks\/(FAQBlock|ContactBlock|NewsletterBlock)/.test(id)) return 'block-interactive';
+          if (/components\/blocks\/(VideoBlock|MapBlock|TimelineBlock)/.test(id)) return 'block-media';
+          if (/components\/blocks\/(TeamBlock|QuoteBlock|BlogBlock)/.test(id)) return 'block-specialized';
+
+          // Loading and animation systems
+          if (/components\/AmazingLoader/.test(id)) return 'loader-system';
+          if (/components\/skeletons\//.test(id)) return 'skeleton-system';
+
+          // Hook utilities
+          if (/hooks\/useAIRecommendations/.test(id)) return 'ai-hooks';
+          if (/hooks\/useOfflineSync/.test(id)) return 'sync-hooks';
+          if (/hooks\/admin-hooks/.test(id)) return 'admin-hooks';
         },
         assetFileNames: (asset) => {
           const ext = asset.name?.split('.').pop();
           if (!ext) return '[name]-[hash][extname]';
-          // Auto-convert to webp/avif at build time via ViteImageOptimize
           if (['png', 'jpg', 'jpeg'].includes(ext)) {
             return `images/[name]-[hash].webp`;
           }
@@ -122,5 +153,8 @@ export default defineConfig(({ mode }) => ({
       }
     },
     chunkSizeWarningLimit: 100, // Warn at 100KB instead of 500KB
+    sourcemap: false, // Disable sourcemaps in production for smaller bundles
+    minify: 'esbuild', // Use esbuild for faster, smaller bundles
+    target: 'es2020', // Modern browsers for better optimization
   },
 }));

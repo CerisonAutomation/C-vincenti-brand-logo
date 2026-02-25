@@ -38,11 +38,11 @@ describe('PricingBlock', () => {
   it('calls button onClick when button is clicked', () => {
     render(<PricingBlock plans={mockPlans} />);
 
-    const basicButton = screen.getByRole('button', { name: /choose basic/i });
+    const basicButton = screen.getByRole('button', { name: /select basic plan/i });
     fireEvent.click(basicButton);
     expect(mockPlans[0].buttonOnClick).toHaveBeenCalled();
 
-    const proButton = screen.getByRole('button', { name: /choose pro/i });
+    const proButton = screen.getByRole('button', { name: /select pro plan/i });
     fireEvent.click(proButton);
     expect(mockPlans[1].buttonOnClick).toHaveBeenCalled();
   });
@@ -50,9 +50,9 @@ describe('PricingBlock', () => {
   it('renders features list', () => {
     render(<PricingBlock plans={mockPlans} />);
 
-    expect(screen.getByText('Feature 1')).toBeInTheDocument();
-    expect(screen.getByText('Feature 2')).toBeInTheDocument();
-    expect(screen.getByText('Feature 3')).toBeInTheDocument();
+    expect(screen.getAllByText('Feature 1')).toHaveLength(2);
+    expect(screen.getAllByText('Feature 2')).toHaveLength(2);
+    expect(screen.getAllByText('Feature 3')).toHaveLength(1);
   });
 
   it('has correct accessibility attributes', () => {
@@ -61,11 +61,11 @@ describe('PricingBlock', () => {
     const section = screen.getByRole('region', { name: /pricing plans/i });
     expect(section).toBeInTheDocument();
 
-    const list = screen.getByRole('list');
-    expect(list).toBeInTheDocument();
+    const lists = screen.getAllByRole('list', { name: /plan features/i });
+    expect(lists).toHaveLength(2);
 
     const listitems = screen.getAllByRole('listitem');
-    expect(listitems).toHaveLength(2); // 2 plans
+    expect(listitems).toHaveLength(7); // 2 plans + 2 basic features + 3 pro features
 
     expect(screen.getByLabelText('Most popular plan')).toBeInTheDocument();
   });

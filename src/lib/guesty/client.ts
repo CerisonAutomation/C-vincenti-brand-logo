@@ -1,7 +1,8 @@
 import type {
   Listing, PropertyType, Amenity, Quote, QuoteRequest,
   City, CalendarDay, PaymentProvider, Review, UpsellFee,
-  GuestyError, ReservationResponse, ErrorCode, RatePlan
+  GuestyError, ReservationResponse, ErrorCode, RatePlan,
+  GuestyWebhookEvent
 } from './types';
 
 import { createClient } from '@supabase/supabase-js';

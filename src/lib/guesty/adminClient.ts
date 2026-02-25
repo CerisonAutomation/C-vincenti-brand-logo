@@ -42,6 +42,22 @@ class GuestyAdminClient {
   async getFolioBalance(reservationId: string): Promise<Folio> {
     return request<Folio>({ action: 'admin-folio', reservationId });
   }
+
+  async getListings(): Promise<AdminListing[]> {
+    return request<AdminListing[]>({ action: 'listings' });
+  }
+
+  async confirmReservation(reservationId: string): Promise<any> {
+    return request<any>({ action: 'confirm-reservation', reservationId }, 'POST');
+  }
+
+  async rejectReservation(reservationId: string): Promise<any> {
+    return request<any>({ action: 'reject-reservation', reservationId }, 'POST');
+  }
+
+  async sendMessage(reservationId: string, message: string): Promise<any> {
+    return request<any>({ action: 'send-message', reservationId }, 'POST', { message });
+  }
 }
 
 export const guestyAdminClient = new GuestyAdminClient();

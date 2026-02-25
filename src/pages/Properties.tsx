@@ -3,8 +3,10 @@ import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import BookingSearchBar from '@/components/BookingSearchBar';
 import PropertyCard from '@/components/PropertyCard';
+import { PropertyMap } from '@/components/PropertyMap';
 import { motion } from 'framer-motion';
-import { ArrowRight, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, SlidersHorizontal, X, Map, Grid } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useListings, usePrefetchListing } from '@/lib/guesty';
 import { normalizeListingSummary, type NormalizedListingSummary } from '@/lib/guesty/normalizer';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -34,8 +36,9 @@ export default function Properties() {
   const [minBeds, setMinBeds] = useState(0);
   const [minGuests, setMinGuests] = useState(0);
   const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'rating'>('default');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
-  const { data: guestyListings, isLoading } = useListings();
+  const { data: guestyListings, isLoading, error, refetch } = useListings();
   const prefetch = usePrefetchListing();
 
   const properties: NormalizedListingSummary[] = useMemo(() => {
@@ -204,6 +207,35 @@ export default function Properties() {
               />
             ))}
           </div>
+
+          {/* Error State */}
+          {error && (
+            <div className="text-center py-12">
+              <p className="text-red-500 mb-4">Failed to load properties</p>
+              <button
+                onClick={() => refetch()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Loading skeletons */}
+          {isLoading && !error && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[1,2,3,4,5,6].map(i => (
+                <div key={i} className="rounded-2xl border border-border/50 overflow-hidden bg-card animate-pulse">
+                  <Skeleton className="aspect-[4/3]" />
+                  <div className="p-5 space-y-3">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {!isLoading && filtered.length === 0 && properties.length > 0 && (
             <div className="text-center py-20">

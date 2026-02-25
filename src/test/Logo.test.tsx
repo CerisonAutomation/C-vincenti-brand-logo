@@ -6,8 +6,8 @@ describe("Logo", () => {
   it("renders the brand name and sub text correctly", () => {
     render(<Logo />);
 
-    expect(screen.getByText("Christiano Vincenti")).toBeInTheDocument();
-    expect(screen.getByText("PROPERTY MANAGEMENT")).toBeInTheDocument();
+    const logoImg = screen.getByAltText(/Christiano Vincenti PROPERTY MANAGEMENT/i);
+    expect(logoImg).toBeInTheDocument();
   });
 
   it("has correct aria-label", () => {
@@ -45,16 +45,17 @@ describe("Logo", () => {
   it("renders with custom subText", () => {
     render(<Logo subText="Custom Label" />);
 
-    expect(screen.getByText("CUSTOM LABEL")).toBeInTheDocument();
+    const logoImg = screen.getByAltText(/Christiano Vincenti Custom Label/i);
+    expect(logoImg).toBeInTheDocument();
   });
 
   it("applies size classes correctly", () => {
     const { rerender } = render(<Logo size="sm" />);
-    let brandName = screen.getByText("Christiano Vincenti");
-    expect(brandName).toHaveClass("text-[22px]");
+    let logoImg = screen.getByAltText(/Christiano Vincenti/i);
+    expect(logoImg).toHaveClass("w-32");
 
     rerender(<Logo size="lg" />);
-    brandName = screen.getByText("Christiano Vincenti");
-    expect(brandName).toHaveClass("text-[48px]");
+    logoImg = screen.getByAltText(/Christiano Vincenti/i);
+    expect(logoImg).toHaveClass("w-64");
   });
 });

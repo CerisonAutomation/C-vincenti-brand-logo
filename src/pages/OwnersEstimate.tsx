@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, ChevronRight, ChevronLeft, Home, User, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '@/components/Layout';
+import { PremiumEstimateModal } from '@/components/PremiumEstimateModal';
 import { MALTA_LOCALITIES, PROPERTY_TYPES, BEDROOM_OPTIONS } from '@/lib/malta-localities';
 
 const schema = z.object({
@@ -57,6 +58,7 @@ function FieldError({ msg }: { msg?: string }) {
 
 export default function OwnersEstimate() {
   const [step, setStep] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const {
@@ -168,7 +170,29 @@ export default function OwnersEstimate() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="space-y-6">
+            {/* Premium Modal Trigger */}
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-gold-light text-primary-foreground font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <span>✨ Get Premium Estimate</span>
+              </button>
+              <p className="text-xs text-muted-foreground mt-2">Experience our luxury assessment service</p>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border/30"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                <span className="bg-background px-3">Or continue with standard form</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)}>
             <AnimatePresence mode="wait">
               {step === 0 && (
                 <motion.div
@@ -413,6 +437,7 @@ export default function OwnersEstimate() {
               )}
             </div>
           </form>
+            </div>
 
           <p className="text-[0.65rem] text-muted-foreground text-center leading-relaxed mt-6">
             By submitting, you agree to our{' '}
@@ -421,6 +446,8 @@ export default function OwnersEstimate() {
           </p>
         </div>
       </section>
+
+      <PremiumEstimateModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </Layout>
   );
 }

@@ -8,6 +8,7 @@ import { useListing, useCreateQuote, usePaymentProvider } from '@/lib/guesty/hoo
 import { normalizeListingDetail } from '@/lib/guesty/normalizer';
 import { formatCurrency } from '@/lib/content';
 import { BRAND_FULL } from '@/lib/brand';
+import { log } from '@/lib/logger';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Quote, ReservationResponse, GuestyError } from '@/lib/guesty/types';
 
@@ -131,7 +132,7 @@ export default function Checkout() {
         });
       } catch (instantError: unknown) {
         // If instant booking failed, try to create an inquiry instead
-        console.log('Instant booking failed, trying inquiry:', instantError);
+        log.error('Instant booking failed, trying inquiry', { error: instantError });
 
         reservation = await guestyClient.createInquiry(listingId, {
           checkInDateLocalized: checkIn,

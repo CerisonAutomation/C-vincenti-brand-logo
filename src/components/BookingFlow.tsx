@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, ChevronLeft, Check, Loader2, Tag, AlertCircle, User, Mail, Phone, MessageSquare, Calendar, CreditCard, CheckCircle } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Check, Loader2, Tag, AlertCircle, User, Mail, Phone, MessageSquare } from 'lucide-react';
 import { useCreateQuote, useUpdateCoupon, useCreateInstantReservation, useCreateInquiry } from '@/lib/guesty';
 import type { Quote, Listing } from '@/lib/guesty/types';
 import { formatCurrency } from '@/lib/content';
@@ -56,8 +56,8 @@ export default function BookingFlow({ listing, checkIn, checkOut, guests, onClos
       });
       setQuote(q);
       setStep('details');
-    } catch (err: any) {
-      setGlobalError(err.error_code ? guestyClient.formatError(err) : 'Failed to get pricing. Please try different dates.');
+    } catch (err: unknown) {
+      setGlobalError(err instanceof Error && 'error_code' in err ? guestyClient.formatError(err as any) : 'Failed to get pricing. Please try different dates.');
     }
   };
 
@@ -68,8 +68,8 @@ export default function BookingFlow({ listing, checkIn, checkOut, guests, onClos
     try {
       const updated = await updateCoupon.mutateAsync({ quoteId: quote._id, coupon: couponCode.trim() });
       setQuote(updated);
-    } catch (err: any) {
-      setCouponError(err.error_code ? guestyClient.formatError(err) : 'Invalid promo code');
+    } catch (err: unknown) {
+      setCouponError(err instanceof Error && 'error_code' in err ? guestyClient.formatError(err as any) : 'Invalid promo code');
     }
   };
 
@@ -108,7 +108,7 @@ export default function BookingFlow({ listing, checkIn, checkOut, guests, onClos
       });
       setConfirmationCode(res.confirmationCode || res._id);
       setStep('success');
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Fallback to inquiry if instant booking fails
       try {
         const res = await createInquiry.mutateAsync({
@@ -124,8 +124,8 @@ export default function BookingFlow({ listing, checkIn, checkOut, guests, onClos
         });
         setConfirmationCode(res.confirmationCode || res._id);
         setStep('success');
-      } catch (inquiryErr: any) {
-        setGlobalError(inquiryErr.error_code ? guestyClient.formatError(inquiryErr) : 'Booking failed. Please try again or contact us.');
+      } catch (inquiryErr: unknown) {
+        setGlobalError(inquiryErr instanceof Error && 'error_code' in inquiryErr ? guestyClient.formatError(inquiryErr as any) : 'Booking failed. Please try again or contact us.');
       }
     }
   };
@@ -188,7 +188,6 @@ export default function BookingFlow({ listing, checkIn, checkOut, guests, onClos
               ].map((stepConfig, index) => {
                 const isCompleted = index < ['quote', 'details', 'confirm'].indexOf(step);
                 const isCurrent = stepConfig.key === step;
-                const isUpcoming = index > ['quote', 'details', 'confirm'].indexOf(step);
 
                 return (
                   <motion.div
@@ -290,18 +289,18 @@ export default function BookingFlow({ listing, checkIn, checkOut, guests, onClos
             <>
               <div className="satin-surface rounded-xl p-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{formatCurrency(listing.prices.basePrice)} × {nights} nights</span>
-                  <span className="text-foreground">{formatCurrency(listing.prices.basePrice * nights)}</span>
+                  <span className="text-muted-foreground">{formatCurrency(listing.pricing.basePrice)} × {nights} nights</span>
+                  <span className="text-foreground">{formatCurrency(listing.pricing.basePrice * nights)}</span>
                 </div>
-                {listing.prices.cleaningFee && (
+                {listing.pricing.cleaningFee && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Cleaning fee</span>
-                    <span className="text-foreground">{formatCurrency(listing.prices.cleaningFee)}</span>
+                    <span className="text-foreground">{formatCurrency(listing.pricing.cleaningFee)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-semibold pt-2 border-t border-border/30">
                   <span className="text-foreground">Estimated total</span>
-                  <span className="text-primary">{formatCurrency(listing.prices.basePrice * nights + (listing.prices.cleaningFee || 0))}</span>
+                  <span className="text-primary">{formatCurrency(listing.pricing.basePrice * nights + (listing.pricing.cleaningFee || 0))}</span>
                 </div>
               </div>
 
@@ -320,15 +319,15 @@ export default function BookingFlow({ listing, checkIn, checkOut, guests, onClos
             <>
               {/* Price breakdown from quote */}
               <div className="satin-surface rounded-xl p-4 space-y-2">
-                {quote.priceBreakdown?.map((item, i) => (
+                {Object.entries(quote.priceBreakdown).map(([key, value], i) => (
                   <div key={i} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{item.description}</span>
-                    <span className="text-foreground">{formatCurrency(item.value)}</span>
+                    <span className="text-muted-foreground">{key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}</span>
+                    <span className="text-foreground">{formatCurrency(value)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-sm font-semibold pt-2 border-t border-border/30">
                   <span className="text-foreground">Total</span>
-                  <span className="text-primary">{formatCurrency(quote.totalPrice)}</span>
+                  <span className="text-primary">{formatCurrency(quote.priceBreakdown.total)}</span>
                 </div>
               </div>
 

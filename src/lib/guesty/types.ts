@@ -30,171 +30,133 @@ export type Amenity =
   | 'HEATING' | 'HIGH_CHAIR' | 'HOT_TUB' | 'HOT_WATER' | 'INDOOR_FIREPLACE'
   | 'INTERNET' | 'IRON' | 'KITCHEN' | 'LAPTOP_FRIENDLY_WORKSPACE' | 'LONG_TERM_STAYS_ALLOWED'
   | 'LUGGAGE_DROPOFF_ALLOWED' | 'MICROWAVE' | 'OTHER_PET' | 'OUTLET_COVERS' | 'OVEN'
-  | 'PACK_N_PLAY_TRAVEL_CRIB' | 'PATH_TO_ENTRANCE_LIT_AT_NIGHT' | 'PATIO_OR_BALCONY'
-  | 'PETS_ALLOWED' | 'PETS_LIVE_ON_THIS_PROPERTY' | 'POCKET_WIFI' | 'PRIVATE_ENTRANCE'
-  | 'REFRIGERATOR' | 'ROLL_IN_SHOWER_WITH_SHOWER_BENCH_OR_CHAIR' | 'ROOM_DARKENING_SHADES'
-  | 'SHAMPOO' | 'SINGLE_LEVEL_HOME' | 'SMOKE_DETECTOR' | 'SMOKING_ALLOWED'
-  | 'STAIR_GATES' | 'STEP_FREE_ACCESS' | 'STOVE' | 'SUITABLE_FOR_INFANTS'
-  | 'SUITABLE_FOR_CHILDREN' | 'TUB_WITH_SHOWER_BENCH' | 'TV' | 'WASHER'
-  | 'WIDE_CLEARANCE_TO_BED' | 'WIDE_CLEARANCE_TO_SHOWER_AND_TOILET' | 'WIDE_DOORWAY'
-  | 'WIDE_HALLWAY_CLEARANCE' | 'WINDOW_GUARDS' | 'WIRELESS_INTERNET';
-
-export type ErrorCode =
-  | 'NOT_FOUND' | 'FORBIDDEN' | 'WRONG_REQUEST_PARAMETERS' | 'LISTING_CALENDAR_BLOCKED'
-  | 'MIN_NIGHT_MISMATCH' | 'MAX_NIGHT_EXCEEDED' | 'ADVANCE_BOOKING_NOTICE' | 'WINDOW_NOT_OPEN'
-  | 'GUEST_COUNT_EXCEEDED' | 'INSUFFICIENT_GUESTS' | 'PRICE_CHANGED' | 'PRICING_ERROR'
-  | 'COUPON_NOT_FOUND' | 'COUPON_IS_DISABLED' | 'COUPON_MIN_NIGHT_MISMATCH' | 'COUPON_MAXIMUM_USES_EXCEEDED'
-  | 'COUPON_EXPIRATION_DATE_EXCEEDED' | 'COUPON_OUT_OF_CHECKIN_RANGE' | 'COUPON_UNEXPECTED_ERROR'
-  | 'CREATE_RESERVATION_ERROR' | 'WRONG_PAYMENT_CONFIG' | 'PAYMENT_FAILED' | 'PAYMENT_TOKEN_INVALID'
-  | 'UNAUTHORIZED' | 'TOKEN_EXPIRED' | 'RATE_LIMIT_EXCEEDED' | 'QUOTA_EXCEEDED'
-  | 'SERVICE_UNAVAILABLE' | 'INTERNAL_ERROR' | 'LISTING_NOT_FOUND' | 'LISTING_UNAVAILABLE'
-  | 'MISSING_REQUIRED_FIELD' | 'INVALID_DATE_RANGE';
+  | 'PACK_N_PLAY_TRAVEL_CRIB' | 'PATH_TO_ENTRANCE_LIT_AT_NIGHT' | 'PATIO_OR_BALCONY';
 
 export interface Address {
-  city: string;
-  country: string;
   full: string;
-  lat: number;
-  lng: number;
+  country?: string;
   state?: string;
+  city: string;
   street?: string;
   zipcode?: string;
-  neighborhood?: string;
-}
-
-export interface BedArrangements {
-  bedroomCount: number;
-  commonSpaceCount: number;
-  details: Array<{
-    roomName: string;
-    beds: Array<{
-      type: 'queenBed' | 'kingBed' | 'doubleBed' | 'singleBed' | 'sofaBed' | 'bunkBed' | 'other';
-      count: number;
-    }>;
-  }>;
+  lat?: number;
+  lng?: number;
 }
 
 export interface Picture {
   _id: string;
   original: string;
+  thumbnail?: string;
+  medium?: string;
   large?: string;
-  regular?: string;
-  thumbnail: string;
+  caption?: string;
+  sort?: number;
+  tags?: string[];
 }
 
-export interface Prices {
+export interface Pricing {
+  currency: string;
   basePrice: number;
-  currency: CurrencyCode;
-  monthlyPriceFactor?: number;
-  weeklyPriceFactor?: number;
-  extraPersonFee?: number;
   cleaningFee?: number;
-  petFee?: number;
-}
-
-export interface GuestControls {
-  allowsChildren: boolean;
-  allowsInfants: boolean;
-  allowsPets: boolean;
-  allowsSmoking: boolean;
-  allowsEvents: boolean;
-}
-
-export interface PublicDescription {
-  guestControls?: GuestControls;
-  space?: string;
-  access?: string;
-  neighborhood?: string;
-  transit?: string;
-  notes?: string;
-  interactionWithGuests?: string;
-  summary?: string;
-  houseRules?: string;
-}
-
-export interface Tax {
-  _id: string;
-  amount: number;
-  appliedOnFees: string[];
-  name: string;
-  quantifier: 'NIGHT' | 'GUEST' | 'STAY' | 'PER_GUEST_PER_NIGHT';
-  type: TaxType;
-  units: 'FIXED' | 'PERCENTAGE';
-}
-
-export interface CalendarRules {
-  defaultAvailability: 'AVAILABLE' | 'BLOCKED';
-  seasonalMinNights?: Array<{ from: string; to: string; value: number }>;
-  rentalPeriods?: Array<{ from: string; to: string }>;
-  preparationTime?: number;
-  advanceNotice?: { defaultSettings: { hours: number; allowRequestToBook: boolean } };
-  bookingWindow?: { defaultSettings: { days: number } };
+  securityDeposit?: number;
+  weeklyDiscount?: number;
+  monthlyDiscount?: number;
+  minNights?: number;
+  maxNights?: number;
 }
 
 export interface Listing {
   _id: string;
   title: string;
-  nickname?: string;
-  type: 'SINGLE' | 'MTL';
-  roomType: 'Entire home/apt' | 'Private room' | 'Shared room';
-  accommodates: number;
-  address: Address;
-  publishedAddress?: Address;
-  amenities: Amenity[];
-  bedArrangements?: BedArrangements;
-  bathrooms: number;
-  bedrooms: number;
-  beds: number;
+  nickname: string;
+  description?: string;
+  summary?: string;
   pictures: Picture[];
-  prices: Prices;
+  address: Address;
   propertyType: PropertyType;
-  reviewsCount?: number;
-  rating?: number;
-  parentListingId?: string;
-  subUnits?: string[];
-  checkInDateLocalized?: string;
-  checkOutDateLocalized?: string;
-  tags?: string[];
-  allotment?: any;
-  nightlyRates?: any;
-  featured?: boolean;
-  featuredPicture?: Picture;
-  taxes?: Tax[];
-  calendarRules?: CalendarRules;
-  defaultCheckInTime?: string;
-  defaultCheckOutTime?: string;
-  publicDescription?: PublicDescription;
-}
-
-export interface GuestyError {
-  error_code: ErrorCode;
-  message: string;
-  data: { errors: string[]; requestId?: string };
-}
-
-export interface ReservationResponse {
-  _id: string;
-  status: 'confirmed' | 'inquiry' | 'declined';
-  confirmationCode: string | null;
-  errors?: string;
+  roomType?: string;
+  bedrooms: number;
+  roomsCount: number;
+  bedsCount: number;
+  bathrooms: number;
+  bathroomsCount: number;
+  accommodates: number;
+  amenities: Amenity[];
+  pricing: Pricing;
+  availability: {
+    isAvailable: boolean;
+    nextAvailableDate?: string;
+    calendarUrl?: string;
+  };
+  reviews?: {
+    count: number;
+    averageRating: number;
+    summary?: string;
+  };
+  host?: {
+    _id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    picture?: string;
+  };
+  policies?: {
+    checkInTime?: string;
+    checkOutTime?: string;
+    cancellationPolicy?: string;
+    smokingAllowed?: boolean;
+    petsAllowed?: boolean;
+    partiesAllowed?: boolean;
+  };
+  location?: {
+    lat: number;
+    lng: number;
+    accuracy?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  published: boolean;
 }
 
 export interface CalendarDay {
   date: string;
-  minNights: number;
-  isBaseMinNights: boolean;
-  status: 'available' | 'unavailable' | 'reserved' | 'booked';
-  blockType?: 'manual' | 'reservation' | 'calendar_rule' | 'owner' | 'smart_rule' | 'annual_limit';
-  cta: boolean;
-  ctd: boolean;
-  price: number;
-  currency: string;
+  available: boolean;
+  price?: number;
+  minimumStay?: number;
+  maximumStay?: number;
+  checkIn?: boolean;
+  checkOut?: boolean;
+  reason?: string;
+  note?: string;
 }
 
-export interface AuthResponse {
-  access_token: string;
-  expires_in: number;
-  token_type: string;
+export interface City {
+  _id: string;
+  name: string;
+  country: string;
+  state?: string;
+  count: number;
+  center?: {
+    lat: number;
+    lng: number;
+  };
+}
+
+export interface Review {
+  _id: string;
+  listingId: string;
+  guestId: string;
+  guestName: string;
+  rating: number;
+  title?: string;
+  comment: string;
+  createdAt: string;
+  response?: {
+    comment: string;
+    createdAt: string;
+  };
+  verified: boolean;
+  public: boolean;
 }
 
 export interface QuoteRequest {
@@ -202,121 +164,305 @@ export interface QuoteRequest {
   checkInDateLocalized: string;
   checkOutDateLocalized: string;
   guestsCount: number;
+  ratePlanId?: string;
   coupons?: string[];
-  ratePlanId?: string; // For V3 Booking Flow - specific rate plan
-  upsellFees?: string[]; // Optional upsell fees to include
+  upsellFees?: string[];
+  message?: string;
+  guestInfo?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+  };
 }
 
 export interface Quote {
   _id: string;
   listingId: string;
-  ratePlanId?: string;
-  ratePlanName?: string;
-  checkIn: string;
-  checkOut: string;
+  checkInDateLocalized: string;
+  checkOutDateLocalized: string;
   guestsCount: number;
-  totalPrice: number;
+  nightsCount: number;
   currency: string;
-  priceBreakdown: QuotePriceBreakdown[];
-  taxes: QuoteTax[];
-  coupons?: AppliedCoupon[];
-  validUntil?: string; // Quote expiration
-  upsellFees?: UpsellFeeQuote[];
-}
-
-export interface QuotePriceBreakdown {
-  type: 'base' | 'extra_guest' | 'cleaning_fee' | 'pet_fee' | 'discount' | 'subtotal' | 'total';
-  value: number;
-  description: string;
-  quantity?: number;
-  unitPrice?: number;
-}
-
-export interface QuoteTax {
-  name: string;
-  amount: number;
-  type: TaxType;
-  quantifier: 'NIGHT' | 'GUEST' | 'STAY' | 'PER_GUEST_PER_NIGHT';
-  includedInBase?: boolean;
-}
-
-export interface AppliedCoupon {
-  code: string;
-  type: 'fixed' | 'percentage';
-  value: number;
-  description: string;
-  discountAmount: number;
-}
-
-export interface UpsellFeeQuote {
-  _id: string;
-  title: string;
-  description: string;
-  amount: number;
-  currency: string;
-  selected: boolean;
+  priceBreakdown: {
+    accommodation: number;
+    cleaningFee?: number;
+    securityDeposit?: number;
+    taxes?: number;
+    fees?: number;
+    discounts?: number;
+    total: number;
+  };
+  ratePlan?: RatePlan;
+  coupons?: Coupon[];
+  upsellFees?: UpsellFee[];
+  available: boolean;
+  reason?: string;
+  createdAt: string;
+  expiresAt: string;
 }
 
 export interface RatePlan {
   _id: string;
   name: string;
   description?: string;
-  isDefault: boolean;
-  minNights: number;
+  pricing: {
+    basePrice: number;
+    currency: string;
+    weeklyDiscount?: number;
+    monthlyDiscount?: number;
+  };
+  minNights?: number;
   maxNights?: number;
-  cancellationPolicy?: CancellationPolicy;
+  checkInDays?: number[];
+  checkOutDays?: number[];
 }
 
-export interface CancellationPolicy {
-  type: 'flexible' | 'moderate' | 'strict' | 'custom';
-  text: string;
-  penalties?: Array<{
-    daysBefore: number;
-    penaltyPercent: number;
-  }>;
-}
-
-export interface City {
+export interface Coupon {
+  _id: string;
+  code: string;
   name: string;
-  country: string;
-  count: number;
-}
-
-export interface PaymentProvider {
-  _id: string;
-  type: 'stripe' | 'guesty_pay' | 'merchant_warrior';
-  publishableKey?: string;
-}
-
-export interface Review {
-  _id: string;
-  listingId: string;
-  guestName: string;
-  rating: number;
-  publicReview: string;
-  createdAt: string;
+  description?: string;
+  discount: {
+    type: 'percentage' | 'fixed';
+    value: number;
+    currency?: string;
+  };
+  minNights?: number;
+  maxNights?: number;
+  validFrom: string;
+  validTo: string;
+  maxUses?: number;
+  usedCount: number;
+  applicableListings?: string[];
+  active: boolean;
 }
 
 export interface UpsellFee {
   _id: string;
-  title: string;
-  description: string;
-  amount: number;
+  name: string;
+  description?: string;
+  price: number;
   currency: string;
+  type: 'per_night' | 'per_stay' | 'per_guest';
+  required: boolean;
+  maxQuantity?: number;
 }
 
-export interface MetasearchConfig {
+export interface PaymentProvider {
+  name: string;
+  supportedCurrencies: string[];
+  supportedCards: string[];
+  fees?: {
+    percentage?: number;
+    fixed?: number;
+  };
+  configuration: Record<string, any>;
+}
+
+export interface ReservationGuest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  dateOfBirth?: string;
+  nationality?: string;
+  address?: {
+    full: string;
+    country?: string;
+    city?: string;
+    street?: string;
+    zipcode?: string;
+  };
+}
+
+export interface ReservationResponse {
   _id: string;
-  channelName: string;
-  enabled: boolean;
+  confirmationCode: string;
+  status: 'inquiry' | 'tentative' | 'confirmed' | 'cancelled' | 'expired';
+  listingId: string;
+  checkInDateLocalized: string;
+  checkOutDateLocalized: string;
+  guestsCount: number;
+  nightsCount: number;
+  guest: ReservationGuest;
+  money: {
+    currency: string;
+    totalPaid: number;
+    netIncome?: number;
+    hostPayout?: number;
+    fees?: number;
+    taxes?: number;
+  };
+  payment?: {
+    status: 'pending' | 'paid' | 'failed' | 'refunded';
+    method?: string;
+    transactionId?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  notes?: string;
+  specialRequests?: string;
+  source?: string;
 }
 
-export interface PayoutReconciliation {
-  payoutId: string;
-  amount: number;
-  currency: string;
-  status: 'paid' | 'pending' | 'failed';
-  reservationConfirmationCode?: string;
+// Enhanced types for advanced booking features
+export interface BookingAnalytics {
+  listingId: string;
+  period: {
+    start: string;
+    end: string;
+  };
+  metrics: {
+    views: number;
+    inquiries: number;
+    bookings: number;
+    conversionRate: number;
+    averageStay: number;
+    revenue: number;
+    occupancyRate: number;
+  };
+  trends: {
+    views: number;
+    bookings: number;
+    revenue: number;
+  };
+}
+
+export interface GuestProfile {
+  _id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  dateOfBirth?: string;
+  nationality?: string;
+  address?: Address;
+  preferences?: {
+    amenities?: Amenity[];
+    propertyTypes?: PropertyType[];
+    budget?: {
+      min?: number;
+      max?: number;
+      currency: string;
+    };
+    locations?: string[];
+  };
+  bookingHistory: {
+    totalBookings: number;
+    totalSpent: number;
+    averageRating?: number;
+    favoriteAmenities?: Amenity[];
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationSettings {
+  email: {
+    bookingConfirmations: boolean;
+    paymentReminders: boolean;
+    reviewRequests: boolean;
+    marketing: boolean;
+  };
+  sms: {
+    bookingUpdates: boolean;
+    checkInReminders: boolean;
+  };
+  push: {
+    priceAlerts: boolean;
+    availabilityAlerts: boolean;
+  };
+}
+
+export interface SearchFilters {
+  location?: string;
+  checkIn?: string;
+  checkOut?: string;
+  guests?: number;
+  propertyType?: PropertyType[];
+  amenities?: Amenity[];
+  priceRange?: {
+    min: number;
+    max: number;
+    currency: string;
+  };
+  instantBook?: boolean;
+  superhost?: boolean;
+  minRating?: number;
+  sortBy?: 'price_asc' | 'price_desc' | 'rating' | 'popularity' | 'distance';
+}
+
+export interface SearchResult {
+  listings: Listing[];
+  totalCount: number;
+  page: number;
+  limit: number;
+  filters: SearchFilters;
+  facets: {
+    propertyTypes: Record<PropertyType, number>;
+    amenities: Record<Amenity, number>;
+    priceRanges: Array<{
+      min: number;
+      max: number;
+      count: number;
+    }>;
+    locations: Array<{
+      name: string;
+      count: number;
+    }>;
+  };
+}
+
+// Webhook and real-time types
+export interface WebhookEvent {
+  type: 'booking.created' | 'booking.updated' | 'booking.cancelled' | 'payment.succeeded' | 'payment.failed' | 'review.created';
+  data: Record<string, any>;
+  createdAt: string;
+  id: string;
+}
+
+export interface RealtimeSubscription {
+  channel: string;
+  events: string[];
+  callback: (event: WebhookEvent) => void;
+}
+
+// Advanced analytics types
+export interface PerformanceMetrics {
+  api: {
+    responseTime: number;
+    errorRate: number;
+    throughput: number;
+  };
+  booking: {
+    conversionRate: number;
+    averageBookingValue: number;
+    cancellationRate: number;
+  };
+  user: {
+    sessionDuration: number;
+    bounceRate: number;
+    returnRate: number;
+  };
+}
+
+// Integration types
+export interface ThirdPartyIntegration {
+  provider: 'stripe' | 'paypal' | 'google' | 'facebook' | 'airbnb' | 'booking_com';
+  status: 'connected' | 'disconnected' | 'error';
+  config: Record<string, any>;
+  lastSync?: string;
+  error?: string;
+}
+
+export interface APIKey {
+  _id: string;
+  name: string;
+  key: string;
+  permissions: string[];
+  expiresAt?: string;
+  lastUsed?: string;
   createdAt: string;
 }
 
@@ -358,14 +504,14 @@ export interface Folio {
   entries: Array<{ type: string; amount: number; description: string; isTax: boolean }>;
 }
 
-export type WebhookEvent =
+export type GuestyWebhookEvent =
   | 'reservation.new' | 'reservation.updated' | 'reservation.messageReceived'
   | 'payment.received' | 'payment.failed' | 'listing.calendar.updated' | 'listing.updated';
 
 export interface GuestyWebhook {
   _id: string;
   url: string;
-  events: WebhookEvent[];
+  events: GuestyWebhookEvent[];
   active: boolean;
 }
 
@@ -377,4 +523,49 @@ export interface JournalEntry {
   type: 'debit' | 'credit';
   description: string;
   date: string;
+}
+
+// Error types for Guesty API
+export type ErrorCode =
+  | 'LISTING_NOT_FOUND'
+  | 'LISTING_CALENDAR_BLOCKED'
+  | 'LISTING_UNAVAILABLE'
+  | 'MIN_NIGHT_MISMATCH'
+  | 'MAX_NIGHT_EXCEEDED'
+  | 'ADVANCE_BOOKING_NOTICE'
+  | 'WINDOW_NOT_OPEN'
+  | 'GUEST_COUNT_EXCEEDED'
+  | 'INSUFFICIENT_GUESTS'
+  | 'PRICE_CHANGED'
+  | 'PRICING_ERROR'
+  | 'COUPON_NOT_FOUND'
+  | 'COUPON_IS_DISABLED'
+  | 'COUPON_MIN_NIGHT_MISMATCH'
+  | 'COUPON_MAXIMUM_USES_EXCEEDED'
+  | 'COUPON_EXPIRATION_DATE_EXCEEDED'
+  | 'COUPON_OUT_OF_CHECKIN_RANGE'
+  | 'PAYMENT_FAILED'
+  | 'PAYMENT_TOKEN_INVALID'
+  | 'WRONG_PAYMENT_CONFIG'
+  | 'WRONG_REQUEST_PARAMETERS'
+  | 'MISSING_REQUIRED_FIELD'
+  | 'INVALID_DATE_RANGE'
+  | 'RATE_LIMIT_EXCEEDED'
+  | 'QUOTA_EXCEEDED'
+  | 'NOT_FOUND'
+  | 'UNAUTHORIZED'
+  | 'TOKEN_EXPIRED'
+  | 'FORBIDDEN'
+  | 'SERVICE_UNAVAILABLE'
+  | 'INTERNAL_ERROR'
+  | 'COUPON_UNEXPECTED_ERROR'
+  | 'CREATE_RESERVATION_ERROR';
+
+export interface GuestyError {
+  error_code: ErrorCode;
+  message: string;
+  data?: {
+    errors?: string[];
+    details?: Record<string, any>;
+  };
 }
