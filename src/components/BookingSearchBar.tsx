@@ -9,7 +9,7 @@ import { BookingModal } from './BookingModal';
 
 interface BookingSearchBarProps {
   variant?: 'hero' | 'page' | 'inline';
-  onSearch?: (params: any) => void;
+  onSearch?: (params: Record<string, unknown>) => void;
 }
 
 /**

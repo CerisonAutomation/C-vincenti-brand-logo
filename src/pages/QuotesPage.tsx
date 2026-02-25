@@ -40,21 +40,24 @@ export default function QuotesPage() {
   const rejectMutation = useRejectReservation();
   const sendMutation = useSendMessage();
 
-  const quotes = (quotesData?.reservations || []).map((q: any): Quote => ({
-    id: q._id,
-    guest: q.guest?.name || 'Unknown',
-    email: q.guest?.email || '',
-    phone: q.guest?.phone || '',
-    checkIn: q.checkInDate,
-    checkOut: q.checkOutDate,
-    guests: q.guest?.guestNumber || 1,
-    nights: Math.ceil((new Date(q.checkOutDate).getTime() - new Date(q.checkInDate).getTime()) / (1000 * 60 * 60 * 24)),
-    total: q.totalPrice || 0,
-    nightly: Math.round((q.totalPrice || 0) / (Math.ceil((new Date(q.checkOutDate).getTime() - new Date(q.checkInDate).getTime()) / (1000 * 60 * 60 * 24)) || 1)),
-    status: q.status || 'quoted',
-    created: q.createdAt,
-    listing: q.listing?.title || 'Property',
-  }));
+  const quotes = ((quotesData as { reservations?: unknown[] })?.reservations || []).map((q: unknown): Quote => {
+    const reservation = q as { _id: string; guest?: { name?: string; email?: string; phone?: string; guestNumber?: number }; checkInDate: string; checkOutDate: string; totalPrice?: number; status?: string; createdAt: string; listing?: { title?: string } };
+    return {
+      id: reservation._id,
+      guest: reservation.guest?.name || 'Unknown',
+      email: reservation.guest?.email || '',
+      phone: reservation.guest?.phone || '',
+      checkIn: reservation.checkInDate,
+      checkOut: reservation.checkOutDate,
+      guests: reservation.guest?.guestNumber || 1,
+      nights: Math.ceil((new Date(reservation.checkOutDate).getTime() - new Date(reservation.checkInDate).getTime()) / (1000 * 60 * 60 * 24)),
+      total: reservation.totalPrice || 0,
+      nightly: Math.round((reservation.totalPrice || 0) / (Math.ceil((new Date(reservation.checkOutDate).getTime() - new Date(reservation.checkInDate).getTime()) / (1000 * 60 * 60 * 24)) || 1)),
+      status: reservation.status || 'quoted',
+      created: reservation.createdAt,
+      listing: reservation.listing?.title || 'Property',
+    };
+  });
 
   const filtered = quotes.filter((q: Quote) => {
     const matchFilter = filter === 'all' || q.status === filter;

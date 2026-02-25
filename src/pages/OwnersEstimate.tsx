@@ -51,7 +51,7 @@ const STEPS = [
   { title: 'Your Goals', subtitle: 'What are you looking to achieve?', icon: MessageSquare },
 ];
 
-function FieldError({ msg }: { msg?: string }) {
+function FieldError({ msg }: { msg?: string | undefined }) {
   if (!msg) return null;
   return <p className="text-xs text-destructive mt-1">{msg}</p>;
 }
@@ -78,7 +78,7 @@ export default function OwnersEstimate() {
   });
 
   const nextStep = async () => {
-    const valid = await trigger(STEP_FIELDS[step] as any);
+    const valid = await trigger(STEP_FIELDS[step] as readonly (keyof FormData)[]);
     if (valid) setStep(s => Math.min(s + 1, STEPS.length - 1));
   };
 
