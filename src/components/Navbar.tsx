@@ -58,12 +58,12 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
         Skip to content
       </a>
 
-      <header
+      <header role="banner"
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled ? "bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-sm" : "bg-transparent"
         }`}
       >
-        <nav className="section-container flex items-center justify-between h-16 sm:h-20">
+        <nav aria-label="Main navigation" className="section-container flex items-center justify-between h-16 sm:h-20">
           {/* Logo */}
           <Link to="/" aria-label="Home" className="flex-shrink-0">
             <img src={logoWordmark} alt="Christiano Vincenti Property Management" className="h-10 sm:h-12 w-auto" />
@@ -80,6 +80,7 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                   onMouseLeave={() => setOpenDropdown(null)}
                 >
                   <button
+                    aria-expanded={openDropdown === link.label}
                     className={`flex items-center gap-1 text-[13px] font-medium px-4 py-2 rounded-full transition-colors ${
                       isActive(link.href) ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     }`}
@@ -95,11 +96,13 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                         exit={{ opacity: 0, y: 6 }}
                         transition={{ duration: 0.15 }}
                         className="absolute top-full left-0 mt-1 w-52 bg-card border border-border/50 rounded-xl shadow-lg overflow-hidden py-1"
+                        role="menu"
                       >
                         {link.children.map((child) => (
                           <Link
                             key={child.href}
                             to={child.href}
+                            role="menuitem"
                             className={`block px-4 py-2.5 text-[13px] transition-colors ${
                               location.pathname === child.href
                                 ? 'text-primary bg-primary/5'
@@ -188,6 +191,7 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                     <div key={link.href}>
                       <button
                         onClick={() => setMobileOpen(mobileOpen === link.label ? null : link.label)}
+                        aria-expanded={mobileOpen === link.label}
                         className={`w-full flex items-center justify-between text-[15px] font-medium py-3 px-3 rounded-lg transition-colors ${
                           isActive(link.href) ? "text-primary bg-primary/5" : "text-foreground hover:bg-accent/50"
                         }`}
@@ -202,11 +206,13 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                             className="overflow-hidden pl-3"
+                            role="menu"
                           >
                             {link.children.map((child) => (
                               <Link
                                 key={child.href}
                                 to={child.href}
+                                role="menuitem"
                                 className={`block py-2.5 px-3 text-[14px] rounded-lg transition-colors ${
                                   location.pathname === child.href ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                                 }`}

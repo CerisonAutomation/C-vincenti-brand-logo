@@ -2,12 +2,12 @@ import { useState, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import BookingSearchBar from '@/components/BookingSearchBar';
+import PropertyCard from '@/components/PropertyCard';
 import { motion } from 'framer-motion';
-import { MapPin, Star, Users, BedDouble, Bath, ArrowRight, SlidersHorizontal, X, LayoutGrid } from 'lucide-react';
+import { ArrowRight, SlidersHorizontal, X } from 'lucide-react';
 import { useListings, usePrefetchListing } from '@/lib/guesty';
 import { normalizeListingSummary, type NormalizedListingSummary } from '@/lib/guesty/normalizer';
-import { formatCurrency } from '@/lib/content';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useDebounce } from '@/hooks/use-debounce';
 
 const PROPERTY_TYPES = ['All', 'Apartment', 'Villa', 'Penthouse', 'House', 'Studio', 'Condominium'];
 const PRICE_RANGES = [
@@ -43,10 +43,12 @@ export default function Properties() {
     return guestyListings.map(l => normalizeListingSummary(l));
   }, [guestyListings]);
 
+  const debouncedLocation = useDebounce(activeLocation, 300);
+
   const filtered = useMemo(() => {
     let result = properties;
-    if (activeLocation) {
-      result = result.filter(p => p.city.toLowerCase().includes(activeLocation.toLowerCase()) || p.title.toLowerCase().includes(activeLocation.toLowerCase()));
+    if (debouncedLocation) {
+      result = result.filter(p => p.city.toLowerCase().includes(debouncedLocation.toLowerCase()) || p.title.toLowerCase().includes(debouncedLocation.toLowerCase()));
     }
     if (typeFilter !== 'All') {
       result = result.filter(p => p.propertyType.toLowerCase().includes(typeFilter.toLowerCase()));
@@ -60,7 +62,7 @@ export default function Properties() {
     else if (sortBy === 'price-desc') result = [...result].sort((a, b) => b.basePrice - a.basePrice);
     else if (sortBy === 'rating') result = [...result].sort((a, b) => (b.rating || 0) - (a.rating || 0));
     return result;
-  }, [properties, activeLocation, typeFilter, priceRange, minBeds, minGuests, sortBy]);
+  }, [properties, debouncedLocation, typeFilter, priceRange, minBeds, minGuests, sortBy]);
 
   const activeFilters = [typeFilter !== 'All', priceRange > 0, minBeds > 0, minGuests > 0].filter(Boolean).length;
 
@@ -91,7 +93,7 @@ export default function Properties() {
                 {activeLocation ? `Properties in ${activeLocation}` : 'Our Collection'}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                {isLoading ? 'Loading properties...' : `${filtered.length} propert${filtered.length === 1 ? 'y' : 'ies'} available`}
+                {filtered.length} propert{filtered.length === 1 ? 'y' : 'ies'} available
               </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -108,7 +110,7 @@ export default function Properties() {
               </button>
               <select
                 value={sortBy}
-                onChange={e => setSortBy(e.target.value as any)}
+                onChange={e => setSortBy(e.target.value as typeof sortBy)}
                 className="text-xs border border-border rounded-lg px-3 py-2 bg-card text-foreground"
               >
                 <option value="default">Sort: Default</option>
@@ -191,97 +193,17 @@ export default function Properties() {
             </motion.div>
           )}
 
-          {/* Loading skeletons */}
-          {isLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[1,2,3,4,5,6].map(i => (
-                <div key={i} className="rounded-2xl border border-border/50 overflow-hidden bg-card">
-                  <Skeleton className="aspect-[4/3]" />
-                  <div className="p-5 space-y-3">
-                    <Skeleton className="h-3 w-24" />
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Grid */}
-          {!isLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filtered.map((property, i) => (
-                <Link
-                  to={buildDetailLink(property.id)}
-                  key={property.id}
-                  onMouseEnter={() => prefetch(property.id)}
-                >
-                  <motion.article
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className="group rounded-2xl border border-border/50 overflow-hidden bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5"
-                  >
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <img
-                        src={property.heroImage}
-                        alt={property.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                        loading="lazy"
-                        onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
-                      />
-                      {property.rating != null && (
-                        <div className="absolute top-3 right-3 flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full px-2.5 py-1">
-                          <Star size={12} className="text-primary fill-primary" />
-                          <span className="text-xs font-semibold text-foreground">{property.rating.toFixed(1)}</span>
-                        </div>
-                      )}
-                      <div className="absolute top-3 left-3 bg-background/70 backdrop-blur-sm rounded-full px-2.5 py-1 text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                        {property.propertyType.replace(/_/g, ' ')}
-                      </div>
-                      {/* Gradient overlay */}
-                      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background/50 to-transparent" />
-                    </div>
-
-                    <div className="p-5">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                        <MapPin size={12} className="text-primary" /> {property.city}
-                      </div>
-                      <h3 className="font-serif text-lg font-semibold text-foreground mb-3 group-hover:text-primary transition-colors leading-snug line-clamp-2">
-                        {property.title}
-                      </h3>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
-                        <span className="flex items-center gap-1"><BedDouble size={13} /> {property.bedrooms}</span>
-                        <span className="flex items-center gap-1"><Bath size={13} /> {property.bathrooms}</span>
-                        <span className="flex items-center gap-1"><Users size={13} /> {property.accommodates}</span>
-                      </div>
-                      {/* Tags */}
-                      {property.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {property.tags.slice(0, 3).map((tag, j) => (
-                            <span key={j} className="text-[9px] text-primary/70 bg-primary/10 px-2 py-0.5 rounded-full">{tag}</span>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between pt-3 border-t border-border/30">
-                        {property.basePrice > 0 ? (
-                          <p className="text-foreground font-semibold">
-                            {formatCurrency(property.basePrice)}
-                            <span className="text-xs font-normal text-muted-foreground"> / night</span>
-                          </p>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">View rates</p>
-                        )}
-                        <span className="flex items-center gap-1 text-xs font-semibold text-primary group-hover:gap-2 transition-all">
-                          View <ArrowRight size={12} />
-                        </span>
-                      </div>
-                    </div>
-                  </motion.article>
-                </Link>
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.map((property, i) => (
+              <PropertyCard
+                key={property.id}
+                property={property}
+                index={i}
+                prefetch={prefetch}
+                buildDetailLink={buildDetailLink}
+              />
+            ))}
+          </div>
 
           {!isLoading && filtered.length === 0 && properties.length > 0 && (
             <div className="text-center py-20">

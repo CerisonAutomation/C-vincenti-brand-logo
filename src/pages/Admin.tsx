@@ -1,107 +1,704 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Save, Plus, Trash2, ArrowLeft, Eye, Settings, Home, Image, DollarSign, HelpCircle, BarChart3, FileText } from "lucide-react";
-import { getSiteConfig, updateSiteConfig, type SiteConfig, type PropertyConfig, type PlanConfig, type FAQConfig } from "@/lib/site-config";
-import { Logo } from "@/components/Logo";
+import { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Home, Calendar, Users, MessageSquare, BarChart3, Settings, RefreshCw, CheckSquare, Download, Filter, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
-type Tab = "hero" | "stats" | "process" | "properties" | "pricing" | "faqs" | "navigation" | "brand";
+type GuestyListing = {
+  id: string;
+  title: string;
+  location: string;
+  status: string;
+  price: number;
+  images: string[];
+  amenities: string[];
+};
 
-const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: "brand", label: "Brand", icon: Settings },
-  { id: "hero", label: "Hero", icon: Home },
-  { id: "stats", label: "Stats", icon: BarChart3 },
-  { id: "properties", label: "Properties", icon: Image },
-  { id: "pricing", label: "Pricing", icon: DollarSign },
-  { id: "faqs", label: "FAQs", icon: HelpCircle },
-  { id: "navigation", label: "Navigation", icon: FileText },
-];
+type GuestyReservation = {
+  id: string;
+  guestName: string;
+  listingTitle: string;
+  checkIn: string;
+  checkOut: string;
+  status: string;
+  totalPrice: number;
+  createdAt: string;
+};
+
+type GuestyTask = {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  assignedTo?: string;
+  dueDate?: string;
+};
+
+type GuestyMessage = {
+  id: string;
+  guestName: string;
+  subject: string;
+  preview: string;
+  timestamp: string;
+  type: string;
+};
 
 export default function Admin() {
-  const [config, setConfig] = useState<SiteConfig>(getSiteConfig());
-  const [activeTab, setActiveTab] = useState<Tab>("hero");
-  const [saved, setSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' });
 
-  const save = () => {
-    updateSiteConfig(config);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const queryClient = useQueryClient();
+
+  // Overview Dashboard Data
+  const { data: dashboardStats } = useQuery({
+    queryKey: ['guesty-dashboard'],
+    queryFn: async () => {
+      try {
+        // Get account summary from Guesty
+        const accountResponse = await fetch('/api/guesty/account-summary', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('guesty_token')}` }
+        });
+        const accountData = await accountResponse.json();
+
+        return {
+          totalListings: accountData.totalListings || 0,
+          activeReservations: accountData.activeReservations || 0,
+          monthlyRevenue: accountData.monthlyRevenue || 0,
+          occupancyRate: accountData.occupancyRate || 0,
+          pendingTasks: accountData.pendingTasks || 0,
+          unreadMessages: accountData.unreadMessages || 0,
+        };
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+        return {
+          totalListings: 0,
+          activeReservations: 0,
+          monthlyRevenue: 0,
+          occupancyRate: 0,
+          pendingTasks: 0,
+          unreadMessages: 0,
+        };
+      }
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Properties/Listings Management
+  const { data: listings } = useQuery({
+    queryKey: ['guesty-listings'],
+    queryFn: async (): Promise<GuestyListing[]> => {
+      try {
+        const response = await fetch('/api/guesty/listings', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('guesty_token')}` }
+        });
+        const data = await response.json();
+        return data.listings || [];
+      } catch (error) {
+        console.error('Failed to fetch listings:', error);
+        return [];
+      }
+    },
+  });
+
+  // Reservations Management
+  const { data: reservations } = useQuery({
+    queryKey: ['guesty-reservations'],
+    queryFn: async (): Promise<GuestyReservation[]> => {
+      try {
+        const response = await fetch('/api/guesty/reservations', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('guesty_token')}` }
+        });
+        const data = await response.json();
+        return data.reservations || [];
+      } catch (error) {
+        console.error('Failed to fetch reservations:', error);
+        return [];
+      }
+    },
+  });
+
+  // Tasks Management
+  const { data: tasks } = useQuery({
+    queryKey: ['guesty-tasks'],
+    queryFn: async (): Promise<GuestyTask[]> => {
+      try {
+        const response = await fetch('/api/guesty/tasks', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('guesty_token')}` }
+        });
+        const data = await response.json();
+        return data.tasks || [];
+      } catch (error) {
+        console.error('Failed to fetch tasks:', error);
+        return [];
+      }
+    },
+  });
+
+  // Messages Management
+  const { data: messages } = useQuery({
+    queryKey: ['guesty-messages'],
+    queryFn: async (): Promise<GuestyMessage[]> => {
+      try {
+        const response = await fetch('/api/guesty/messages', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('guesty_token')}` }
+        });
+        const data = await response.json();
+        return data.messages || [];
+      } catch (error) {
+        console.error('Failed to fetch messages:', error);
+        return [];
+      }
+    },
+  });
+
+  // Create Task Mutation
+  const createTaskMutation = useMutation({
+    mutationFn: async (taskData: typeof newTask) => {
+      const response = await fetch('/api/guesty/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('guesty_token')}`
+        },
+        body: JSON.stringify(taskData),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      refetchTasks();
+      setTaskDialogOpen(false);
+      setNewTask({ title: '', description: '', priority: 'medium' });
+      toast.success('Task created successfully');
+    },
+    onError: () => {
+      toast.error('Failed to create task');
+    },
+  });
+
+  // Update Task Status Mutation
+  const updateTaskStatusMutation = useMutation({
+    mutationFn: async ({ taskId, status }: { taskId: string; status: string }) => {
+      const response = await fetch(`/api/guesty/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('guesty_token')}`
+        },
+        body: JSON.stringify({ status }),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      refetchTasks();
+      toast.success('Task updated successfully');
+    },
+  });
+
+  const handleCreateTask = () => {
+    if (!newTask.title.trim()) {
+      toast.error('Task title is required');
+      return;
+    }
+    createTaskMutation.mutate(newTask);
   };
 
-  const updateField = (path: string, value: any) => {
-    setConfig((prev) => {
-      const next = JSON.parse(JSON.stringify(prev));
-      const keys = path.split(".");
-      let obj = next;
-      for (let i = 0; i < keys.length - 1; i++) {
-        obj = obj[keys[i]];
-      }
-      obj[keys[keys.length - 1]] = value;
-      return next;
-    });
+  const handleUpdateTaskStatus = (taskId: string, status: string) => {
+    updateTaskStatusMutation.mutate({ taskId, status });
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="w-56 border-r border-border bg-card/50 flex flex-col">
-        <div className="p-4 border-b border-border">
-          <Logo size="sm" onClick={() => window.location.href = "/"} />
-          <p className="text-[0.6rem] uppercase tracking-[0.3em] text-primary mt-1 font-semibold">Admin Panel</p>
-        </div>
-        <nav className="flex-1 p-3 space-y-1">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded transition-colors ${
-                activeTab === tab.id
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              }`}
-            >
-              <tab.icon size={16} />
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-        <div className="p-3 border-t border-border space-y-2">
-          <a href="/" className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <Eye size={16} /> View Site
-          </a>
-          <a href="/" className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft size={16} /> Back
-          </a>
-        </div>
-      </aside>
+    <>
+      <Helmet>
+        <title>Guesty Admin Dashboard | Christiano Property Management</title>
+        <meta name="description" content="Comprehensive Guesty property management dashboard with reservations, listings, tasks, and analytics." />
+      </Helmet>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="sticky top-0 z-10 glass-surface border-b border-border px-6 py-3 flex items-center justify-between">
-          <h1 className="font-serif text-lg font-semibold text-foreground capitalize">{activeTab}</h1>
-          <button
-            onClick={save}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded transition-all ${
-              saved
-                ? "bg-green-600 text-white"
-                : "bg-primary text-primary-foreground hover:bg-gold-light"
-            }`}
-          >
-            <Save size={14} />
-            {saved ? "Saved!" : "Save Changes"}
-          </button>
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <div className="border-b border-border bg-card">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Guesty Admin Dashboard</h1>
+                <p className="text-sm text-muted-foreground">Complete property management system</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="max-w-3xl mx-auto p-6">
-          {activeTab === "brand" && <BrandEditor config={config} updateField={updateField} />}
-          {activeTab === "hero" && <HeroEditor config={config} updateField={updateField} />}
-          {activeTab === "stats" && <StatsEditor config={config} setConfig={setConfig} />}
-          {activeTab === "properties" && <PropertiesEditor config={config} setConfig={setConfig} />}
-          {activeTab === "pricing" && <PricingEditor config={config} setConfig={setConfig} />}
-          {activeTab === "faqs" && <FAQsEditor config={config} setConfig={setConfig} />}
-          {activeTab === "navigation" && <NavigationEditor config={config} setConfig={setConfig} />}
+        {/* Stats Overview */}
+        <div className="container mx-auto px-4 py-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Listings</p>
+                      <p className="text-2xl font-bold">{dashboardStats?.totalListings || 0}</p>
+                    </div>
+                    <Home className="h-8 w-8 text-primary" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Active Reservations</p>
+                      <p className="text-2xl font-bold">{dashboardStats?.activeReservations || 0}</p>
+                    </div>
+                    <Calendar className="h-8 w-8 text-primary" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Monthly Revenue</p>
+                      <p className="text-2xl font-bold">€{dashboardStats?.monthlyRevenue?.toLocaleString() || 0}</p>
+                    </div>
+                    <CreditCard className="h-8 w-8 text-primary" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Occupancy Rate</p>
+                      <p className="text-2xl font-bold">{dashboardStats?.occupancyRate || 0}%</p>
+                    </div>
+                    <BarChart3 className="h-8 w-8 text-primary" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+
+        {/* Main Content */}
+        <div className="container mx-auto px-4 pb-8">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="listings">Listings</TabsTrigger>
+              <TabsTrigger value="reservations">Reservations</TabsTrigger>
+              <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              <TabsTrigger value="messages">Messages</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            </TabsList>
+
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Quick Actions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button className="w-full justify-start" variant="outline">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create New Listing
+                    </Button>
+                    <Button className="w-full justify-start" variant="outline">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Check Calendar
+                    </Button>
+                    <Button className="w-full justify-start" variant="outline">
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      View Reports
+                    </Button>
+                    <Button className="w-full justify-start" variant="outline">
+                      <Settings className="w-4 h-4 mr-2" />
+                      API Settings
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Recent Activity */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <div className="flex-1">
+                          <p className="text-sm">New reservation confirmed</p>
+                          <p className="text-xs text-muted-foreground">2 minutes ago</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div className="flex-1">
+                          <p className="text-sm">Listing price updated</p>
+                          <p className="text-xs text-muted-foreground">15 minutes ago</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <div className="flex-1">
+                          <p className="text-sm">Maintenance task completed</p>
+                          <p className="text-xs text-muted-foreground">1 hour ago</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Listings Tab */}
+            <TabsContent value="listings" className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Property Listings</h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filter
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {listings?.map((listing) => (
+                  <Card key={listing.id} className="hover:shadow-lg transition-shadow">
+                    <CardContent className="p-0">
+                      <div className="aspect-video bg-muted relative">
+                        {listing.images?.[0] && (
+                          <img
+                            src={listing.images[0]}
+                            alt={listing.title}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                        <Badge className="absolute top-2 right-2">
+                          {listing.status}
+                        </Badge>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold text-lg mb-1">{listing.title}</h3>
+                        <p className="text-sm text-muted-foreground mb-2">{listing.location}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold">€{listing.price}/night</span>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* Reservations Tab */}
+            <TabsContent value="reservations" className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Reservations</h2>
+                <Button variant="outline" size="sm">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+              </div>
+
+              <Card>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Guest</TableHead>
+                      <TableHead>Property</TableHead>
+                      <TableHead>Check-in</TableHead>
+                      <TableHead>Check-out</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {reservations?.map((reservation) => (
+                      <TableRow key={reservation.id}>
+                        <TableCell className="font-medium">{reservation.guestName}</TableCell>
+                        <TableCell>{reservation.listingTitle}</TableCell>
+                        <TableCell>{new Date(reservation.checkIn).toLocaleDateString()}</TableCell>
+                        <TableCell>{new Date(reservation.checkOut).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge variant={reservation.status === 'confirmed' ? 'default' : 'secondary'}>
+                            {reservation.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>€{reservation.totalPrice}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
+            </TabsContent>
+
+            {/* Tasks Tab */}
+            <TabsContent value="tasks" className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Tasks & Maintenance</h2>
+                <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Task
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Task</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium">Title</label>
+                        <Input
+                          value={newTask.title}
+                          onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+                          placeholder="Task title"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Description</label>
+                        <Textarea
+                          value={newTask.description}
+                          onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Task description"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Priority</label>
+                        <Select
+                          value={newTask.priority}
+                          onValueChange={(value) => setNewTask(prev => ({ ...prev, priority: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="urgent">Urgent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleCreateTask} disabled={createTaskMutation.isPending}>
+                          Create Task
+                        </Button>
+                        <Button variant="outline" onClick={() => setTaskDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="space-y-4">
+                {tasks?.map((task) => (
+                  <Card key={task.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-medium">{task.title}</h3>
+                          <p className="text-sm text-muted-foreground">{task.description}</p>
+                          {task.dueDate && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Due: {new Date(task.dueDate).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={
+                            task.priority === 'urgent' ? 'destructive' :
+                            task.priority === 'high' ? 'default' :
+                            task.priority === 'medium' ? 'secondary' : 'outline'
+                          }>
+                            {task.priority}
+                          </Badge>
+                          <Select
+                            value={task.status}
+                            onValueChange={(value) => handleUpdateTaskStatus(task.id, value)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="in_progress">In Progress</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* Messages Tab */}
+            <TabsContent value="messages" className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Guest Communications</h2>
+                <Button variant="outline" size="sm">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  New Message
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {messages?.length ? messages.map((message: GuestyMessage) => (
+                  <Card key={message.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-medium">{message.guestName}</h3>
+                            <Badge variant="outline">{message.type}</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{message.subject}</p>
+                          <p className="text-sm mt-2">{message.preview}</p>
+                        </div>
+                        <div className="text-right text-xs text-muted-foreground">
+                          {new Date(message.timestamp).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )) : (
+                  <div className="text-center py-12">
+                    <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No messages</h3>
+                    <p className="text-muted-foreground">All caught up! No new messages.</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Analytics Tab */}
+            <TabsContent value="analytics" className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Analytics & Reporting</h2>
+                <div className="flex gap-2">
+                  <Select defaultValue="30">
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">Last 7 days</SelectItem>
+                      <SelectItem value="30">Last 30 days</SelectItem>
+                      <SelectItem value="90">Last 90 days</SelectItem>
+                      <SelectItem value="365">Last year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Report
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Revenue Trends</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">
+                      <BarChart3 className="w-8 h-8 mr-2" />
+                      Revenue chart would go here
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Occupancy Rates</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">
+                      <BarChart3 className="w-8 h-8 mr-2" />
+                      Occupancy chart would go here
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Guest Satisfaction</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">
+                      <BarChart3 className="w-8 h-8 mr-2" />
+                      Satisfaction metrics would go here
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Channel Performance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">
+                      <BarChart3 className="w-8 h-8 mr-2" />
+                      Channel breakdown would go here
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -114,186 +711,6 @@ function FieldInput({ label, value, onChange, type = "text", placeholder = "" }:
       ) : (
         <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full px-3 py-2 text-sm bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary" />
       )}
-    </div>
-  );
-}
-
-function BrandEditor({ config, updateField }: { config: SiteConfig; updateField: (p: string, v: any) => void }) {
-  return (
-    <div className="space-y-4">
-      <FieldInput label="Brand Name" value={config.brand.name} onChange={(v) => updateField("brand.name", v)} />
-      <FieldInput label="Tagline" value={config.brand.tagline} onChange={(v) => updateField("brand.tagline", v)} />
-      <FieldInput label="Sub Text" value={config.brand.subText} onChange={(v) => updateField("brand.subText", v)} />
-      <FieldInput label="Email" value={config.brand.email} onChange={(v) => updateField("brand.email", v)} type="email" />
-      <FieldInput label="Phone" value={config.brand.phone} onChange={(v) => updateField("brand.phone", v)} type="tel" />
-      <FieldInput label="Booking URL" value={config.brand.bookingUrl} onChange={(v) => updateField("brand.bookingUrl", v)} type="url" />
-    </div>
-  );
-}
-
-function HeroEditor({ config, updateField }: { config: SiteConfig; updateField: (p: string, v: any) => void }) {
-  return (
-    <div className="space-y-4">
-      <FieldInput label="Tagline" value={config.hero.tagline} onChange={(v) => updateField("hero.tagline", v)} />
-      <FieldInput label="Headline" value={config.hero.headline} onChange={(v) => updateField("hero.headline", v)} />
-      <FieldInput label="Highlighted Word" value={config.hero.highlightedWord} onChange={(v) => updateField("hero.highlightedWord", v)} />
-      <FieldInput label="Description" value={config.hero.description} onChange={(v) => updateField("hero.description", v)} type="textarea" />
-      <FieldInput label="CTA Text" value={config.hero.ctaText} onChange={(v) => updateField("hero.ctaText", v)} />
-      <FieldInput label="Secondary CTA" value={config.hero.secondaryCtaText} onChange={(v) => updateField("hero.secondaryCtaText", v)} />
-    </div>
-  );
-}
-
-function StatsEditor({ config, setConfig }: { config: SiteConfig; setConfig: (c: SiteConfig) => void }) {
-  const update = (i: number, field: "value" | "label", val: string) => {
-    const stats = [...config.stats];
-    stats[i] = { ...stats[i], [field]: val };
-    setConfig({ ...config, stats });
-  };
-  return (
-    <div className="space-y-4">
-      {config.stats.map((s, i) => (
-        <div key={i} className="flex gap-3">
-          <div className="flex-1"><FieldInput label="Value" value={s.value} onChange={(v) => update(i, "value", v)} /></div>
-          <div className="flex-1"><FieldInput label="Label" value={s.label} onChange={(v) => update(i, "label", v)} /></div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PropertiesEditor({ config, setConfig }: { config: SiteConfig; setConfig: (c: SiteConfig) => void }) {
-  const updateProp = (i: number, field: keyof PropertyConfig, val: any) => {
-    const properties = [...config.properties];
-    properties[i] = { ...properties[i], [field]: val };
-    setConfig({ ...config, properties });
-  };
-  const addProp = () => {
-    setConfig({
-      ...config,
-      properties: [...config.properties, { id: `prop-${Date.now()}`, title: "", location: "", type: "Apartment", guests: 2, beds: 1, baths: 1, pricePerNight: "€100", image: "", bookingUrl: "", featured: true }],
-    });
-  };
-  const removeProp = (i: number) => {
-    setConfig({ ...config, properties: config.properties.filter((_, idx) => idx !== i) });
-  };
-
-  return (
-    <div className="space-y-6">
-      {config.properties.map((p, i) => (
-        <div key={p.id} className="glass-surface rounded-lg p-5 space-y-3 relative">
-          <button onClick={() => removeProp(i)} className="absolute top-3 right-3 p-1.5 text-muted-foreground hover:text-destructive transition-colors"><Trash2 size={14} /></button>
-          <FieldInput label="Title" value={p.title} onChange={(v) => updateProp(i, "title", v)} />
-          <div className="grid grid-cols-2 gap-3">
-            <FieldInput label="Location" value={p.location} onChange={(v) => updateProp(i, "location", v)} />
-            <FieldInput label="Type" value={p.type} onChange={(v) => updateProp(i, "type", v)} />
-          </div>
-          <div className="grid grid-cols-4 gap-3">
-            <FieldInput label="Guests" value={String(p.guests)} onChange={(v) => updateProp(i, "guests", parseInt(v) || 0)} />
-            <FieldInput label="Beds" value={String(p.beds)} onChange={(v) => updateProp(i, "beds", parseInt(v) || 0)} />
-            <FieldInput label="Baths" value={String(p.baths)} onChange={(v) => updateProp(i, "baths", parseInt(v) || 0)} />
-            <FieldInput label="Price/Night" value={p.pricePerNight} onChange={(v) => updateProp(i, "pricePerNight", v)} />
-          </div>
-          <FieldInput label="Booking URL" value={p.bookingUrl} onChange={(v) => updateProp(i, "bookingUrl", v)} type="url" />
-          <FieldInput label="Image URL" value={p.image} onChange={(v) => updateProp(i, "image", v)} />
-        </div>
-      ))}
-      <button onClick={addProp} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-dashed border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-primary transition-colors">
-        <Plus size={14} /> Add Property
-      </button>
-    </div>
-  );
-}
-
-function PricingEditor({ config, setConfig }: { config: SiteConfig; setConfig: (c: SiteConfig) => void }) {
-  const updatePlan = (i: number, field: keyof PlanConfig, val: any) => {
-    const plans = [...config.plans];
-    plans[i] = { ...plans[i], [field]: val };
-    setConfig({ ...config, plans });
-  };
-
-  return (
-    <div className="space-y-6">
-      {config.plans.map((plan, i) => (
-        <div key={plan.name} className="glass-surface rounded-lg p-5 space-y-3">
-          <FieldInput label="Plan Name" value={plan.name} onChange={(v) => updatePlan(i, "name", v)} />
-          <div className="grid grid-cols-2 gap-3">
-            <FieldInput label="Price" value={plan.price} onChange={(v) => updatePlan(i, "price", v)} />
-            <FieldInput label="Subtitle" value={plan.subtitle} onChange={(v) => updatePlan(i, "subtitle", v)} />
-          </div>
-          <FieldInput label="Description" value={plan.description} onChange={(v) => updatePlan(i, "description", v)} type="textarea" />
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Features (one per line)</label>
-            <textarea
-              value={plan.features.join("\n")}
-              onChange={(e) => updatePlan(i, "features", e.target.value.split("\n").filter(Boolean))}
-              className="w-full px-3 py-2 text-sm bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-primary min-h-[120px] resize-y"
-            />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-            <input type="checkbox" checked={plan.highlighted} onChange={(e) => updatePlan(i, "highlighted", e.target.checked)} className="accent-primary" />
-            Highlighted (Most Popular)
-          </label>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function FAQsEditor({ config, setConfig }: { config: SiteConfig; setConfig: (c: SiteConfig) => void }) {
-  const updateFaq = (i: number, field: "question" | "answer", val: string) => {
-    const faqs = [...config.faqs];
-    faqs[i] = { ...faqs[i], [field]: val };
-    setConfig({ ...config, faqs });
-  };
-  const addFaq = () => {
-    setConfig({ ...config, faqs: [...config.faqs, { question: "", answer: "" }] });
-  };
-  const removeFaq = (i: number) => {
-    setConfig({ ...config, faqs: config.faqs.filter((_, idx) => idx !== i) });
-  };
-
-  return (
-    <div className="space-y-4">
-      {config.faqs.map((faq, i) => (
-        <div key={i} className="glass-surface rounded-lg p-4 space-y-3 relative">
-          <button onClick={() => removeFaq(i)} className="absolute top-3 right-3 p-1.5 text-muted-foreground hover:text-destructive transition-colors"><Trash2 size={14} /></button>
-          <FieldInput label="Question" value={faq.question} onChange={(v) => updateFaq(i, "question", v)} />
-          <FieldInput label="Answer" value={faq.answer} onChange={(v) => updateFaq(i, "answer", v)} type="textarea" />
-        </div>
-      ))}
-      <button onClick={addFaq} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-dashed border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-primary transition-colors">
-        <Plus size={14} /> Add FAQ
-      </button>
-    </div>
-  );
-}
-
-function NavigationEditor({ config, setConfig }: { config: SiteConfig; setConfig: (c: SiteConfig) => void }) {
-  const updateNav = (i: number, field: "label" | "href", val: string) => {
-    const navigation = [...config.navigation];
-    navigation[i] = { ...navigation[i], [field]: val };
-    setConfig({ ...config, navigation });
-  };
-  const addNav = () => {
-    setConfig({ ...config, navigation: [...config.navigation, { label: "", href: "#" }] });
-  };
-  const removeNav = (i: number) => {
-    setConfig({ ...config, navigation: config.navigation.filter((_, idx) => idx !== i) });
-  };
-
-  return (
-    <div className="space-y-4">
-      {config.navigation.map((nav, i) => (
-        <div key={i} className="flex gap-3 items-end">
-          <div className="flex-1"><FieldInput label="Label" value={nav.label} onChange={(v) => updateNav(i, "label", v)} /></div>
-          <div className="flex-1"><FieldInput label="Link" value={nav.href} onChange={(v) => updateNav(i, "href", v)} /></div>
-          <button onClick={() => removeNav(i)} className="p-2 mb-0.5 text-muted-foreground hover:text-destructive transition-colors"><Trash2 size={14} /></button>
-        </div>
-      ))}
-      <button onClick={addNav} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-dashed border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-primary transition-colors">
-        <Plus size={14} /> Add Link
-      </button>
     </div>
   );
 }

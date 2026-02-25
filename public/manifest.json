@@ -1,0 +1,28 @@
+{
+  "name": "Christiano Property Management",
+  "short_name": "CPM",
+  "description": "Luxury short-term rental and property management platform for Malta",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e0f11",
+  "theme_color": "#c8a96a",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "en-GB",
+  "dir": "ltr"
+}

@@ -99,8 +99,8 @@ export const useCreateInstantReservation = () => {
 
 export const useCreateInquiry = () => {
   return useMutation({
-    mutationFn: ({ listingId, inquiryData }: { listingId: string; inquiryData: any }) =>
-      guestyClient.createInquiry(listingId, inquiryData),
+    mutationFn: ({ quoteId, guestData }: { quoteId: string; guestData: { guest: { firstName: string; lastName: string; email: string; phone: string } } }) =>
+      guestyClient.createInquiry(quoteId, guestData),
   });
 };
 

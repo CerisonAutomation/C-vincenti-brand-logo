@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowRight, ArrowLeft, Check, Shield, BarChart3, Clock } from "lucide-react";
+import { z } from "zod";
 import { MALTA_LOCALITIES, PROPERTY_TYPES, BEDROOM_OPTIONS, SLEEPS_OPTIONS } from "@/lib/malta-localities";
 import {
   WizardData, INITIAL_WIZARD_DATA,
@@ -14,6 +15,36 @@ interface WizardModalProps {
 }
 
 const STEPS = ["Your Situation", "Property Details", "Goals & Readiness", "Contact"];
+
+// Zod schemas for form validation
+const step0Schema = z.object({
+  status: z.enum(["not_listed", "already_listed", "switching"]),
+  listingUrl: z.string().optional(),
+  currentManager: z.string().optional(),
+});
+
+const step1Schema = z.object({
+  locality: z.string().min(1, "Please select a locality"),
+  propertyType: z.string().min(1, "Please select a property type"),
+  bedrooms: z.number().min(1, "Please select number of bedrooms"),
+  sleeps: z.number().min(1, "Please select sleeps capacity"),
+});
+
+const step2Schema = z.object({
+  timeline: z.string().min(1, "Please select a timeline"),
+  goal: z.string().min(1, "Please select your primary goal"),
+  handsOff: z.boolean(),
+  licenceReady: z.boolean(),
+  upgradeBudget: z.string().min(1, "Please select upgrade budget"),
+});
+
+const step3Schema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email"),
+  phone: z.string().min(6, "Please enter a valid phone number"),
+  preferredContact: z.string().min(1, "Please select contact method"),
+  consent: z.boolean().refine(val => val === true, "You must agree to continue"),
+});
 
 export default function WizardModal({ open, onClose }: WizardModalProps) {
   const [step, setStep] = useState(0);
@@ -57,10 +88,10 @@ export default function WizardModal({ open, onClose }: WizardModalProps) {
 
   const canNext = (): boolean => {
     switch (step) {
-      case 0: return !!data.status;
-      case 1: return !!data.locality && !!data.propertyType && !!data.bedrooms;
-      case 2: return !!data.timeline && !!data.goal;
-      case 3: return !!data.name && !!data.email && !!data.phone && data.consent;
+      case 0: return step0Schema.safeParse(data).success;
+      case 1: return step1Schema.safeParse(data).success;
+      case 2: return step2Schema.safeParse(data).success;
+      case 3: return step3Schema.safeParse(data).success;
       default: return false;
     }
   };

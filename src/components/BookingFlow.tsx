@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, ChevronLeft, Check, Loader2, Tag, AlertCircle, User, Mail, Phone, MessageSquare } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Check, Loader2, Tag, AlertCircle, User, Mail, Phone, MessageSquare, Calendar, CreditCard, CheckCircle } from 'lucide-react';
 import { useCreateQuote, useUpdateCoupon, useCreateInstantReservation, useCreateInquiry } from '@/lib/guesty';
 import type { Quote, Listing } from '@/lib/guesty/types';
 import { formatCurrency } from '@/lib/content';
@@ -112,18 +112,14 @@ export default function BookingFlow({ listing, checkIn, checkOut, guests, onClos
       // Fallback to inquiry if instant booking fails
       try {
         const res = await createInquiry.mutateAsync({
-          listingId: listing._id,
-          inquiryData: {
-            checkInDateLocalized: checkIn,
-            checkOutDateLocalized: checkOut,
-            guestsCount: guests,
+          quoteId: '',
+          guestData: {
             guest: {
               firstName: guestData.firstName.trim(),
               lastName: guestData.lastName.trim(),
               email: guestData.email.trim(),
               phone: guestData.phone.trim(),
             },
-            message: guestData.message?.trim() || `Booking inquiry for ${listing.title}`,
           },
         });
         setConfirmationCode(res.confirmationCode || res._id);
@@ -167,14 +163,107 @@ export default function BookingFlow({ listing, checkIn, checkOut, guests, onClos
           </button>
         </div>
 
-        {/* Progress */}
+        {/* Enhanced Progress Indicator */}
         {step !== 'success' && (
-          <div className="flex gap-1 px-5 pt-4">
-            {(['quote', 'details', 'confirm'] as Step[]).map((s, i) => (
-              <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${
-                i <= ['quote', 'details', 'confirm'].indexOf(step) ? 'bg-primary' : 'bg-border'
-              }`} />
-            ))}
+          <div className="px-5 pt-6 pb-2">
+            <div className="flex items-center justify-between relative">
+              {/* Progress line background */}
+              <div className="absolute top-5 left-6 right-6 h-0.5 bg-border/50 rounded-full" />
+
+              {/* Active progress line */}
+              <motion.div
+                className="absolute top-5 left-6 h-0.5 bg-gradient-to-r from-primary via-primary to-primary/60 rounded-full"
+                initial={{ width: 0 }}
+                animate={{
+                  width: `${((['quote', 'details', 'confirm'].indexOf(step) + 1) / 3) * 100}%`
+                }}
+                transition={{ duration: 0.5, ease: 'easeInOut' }}
+              />
+
+              {/* Steps */}
+              {[
+                { key: 'quote', label: 'Pricing', icon: Tag, description: 'Get exact price' },
+                { key: 'details', label: 'Details', icon: User, description: 'Your information' },
+                { key: 'confirm', label: 'Confirm', icon: CreditCard, description: 'Review & book' }
+              ].map((stepConfig, index) => {
+                const isCompleted = index < ['quote', 'details', 'confirm'].indexOf(step);
+                const isCurrent = stepConfig.key === step;
+                const isUpcoming = index > ['quote', 'details', 'confirm'].indexOf(step);
+
+                return (
+                  <motion.div
+                    key={stepConfig.key}
+                    className="flex flex-col items-center relative z-10"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1, duration: 0.3 }}
+                  >
+                    {/* Step circle */}
+                    <motion.div
+                      className={`w-12 h-12 rounded-full border-2 flex items-center justify-center relative ${
+                        isCompleted
+                          ? 'bg-primary border-primary text-primary-foreground'
+                          : isCurrent
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-background text-muted-foreground'
+                      }`}
+                      animate={isCurrent ? { scale: [1, 1.05, 1] } : {}}
+                      transition={{ duration: 2, repeat: isCurrent ? Infinity : 0 }}
+                    >
+                      {isCompleted ? (
+                        <Check size={20} />
+                      ) : (
+                        <stepConfig.icon size={20} />
+                      )}
+
+                      {/* Pulse effect for current step */}
+                      {isCurrent && (
+                        <motion.div
+                          className="absolute inset-0 rounded-full border-2 border-primary"
+                          animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        />
+                      )}
+                    </motion.div>
+
+                    {/* Step label */}
+                    <motion.div
+                      className="mt-3 text-center"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: index * 0.1 + 0.2 }}
+                    >
+                      <div className={`text-xs font-semibold uppercase tracking-wider ${
+                        isCompleted || isCurrent ? 'text-primary' : 'text-muted-foreground'
+                      }`}>
+                        {stepConfig.label}
+                      </div>
+                      <div className={`text-[10px] mt-0.5 ${
+                        isCurrent ? 'text-foreground' : 'text-muted-foreground'
+                      }`}>
+                        {stepConfig.description}
+                      </div>
+                    </motion.div>
+
+                    {/* Step number badge */}
+                    <motion.div
+                      className={`absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                        isCompleted
+                          ? 'bg-primary text-primary-foreground'
+                          : isCurrent
+                            ? 'bg-primary/20 text-primary border border-primary'
+                            : 'bg-muted text-muted-foreground'
+                      }`}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: index * 0.1 + 0.3, type: 'spring' }}
+                    >
+                      {index + 1}
+                    </motion.div>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -390,7 +479,7 @@ export default function BookingFlow({ listing, checkIn, checkOut, guests, onClos
               </div>
 
               <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
-                By confirming, you agree to the property's cancellation policy and house rules. 
+                By confirming, you agree to the property's cancellation policy and house rules.
                 A confirmation email will be sent to {guestData.email}.
               </p>
 

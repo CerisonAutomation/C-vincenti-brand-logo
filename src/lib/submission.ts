@@ -39,7 +39,7 @@ export const INITIAL_WIZARD_DATA: WizardData = {
 const DRAFT_KEY = "cv_wizard_draft";
 
 export function saveDraft(data: WizardData) {
-  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(data)); } catch {}
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(data)); } catch { /* ignore localStorage errors */ }
 }
 
 export function loadDraft(): WizardData | null {
@@ -50,7 +50,7 @@ export function loadDraft(): WizardData | null {
 }
 
 export function clearDraft() {
-  try { localStorage.removeItem(DRAFT_KEY); } catch {}
+  try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore localStorage errors */ }
 }
 
 export function computeTier(data: WizardData): string {
@@ -64,6 +64,5 @@ export function computePlan(data: WizardData): string {
 }
 
 export async function submitLead(data: WizardData): Promise<void> {
-  console.log("Lead submitted:", data);
-  // In production, this would POST to an API or Google Sheets
+  // TODO: Implement proper lead submission to API or Google Sheets
 }

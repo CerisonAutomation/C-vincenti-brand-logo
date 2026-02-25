@@ -1,0 +1,236 @@
+openapi: 3.0.0
+info:
+  title: Christiano Property Management API
+  description: API documentation for property management services including listings, bookings, and user management
+  version: 1.0.0
+  contact:
+    name: Christiano Property Management Support
+    email: info@christianopropertymanagement.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.guesty.com
+    description: Guesty API for property management
+  - url: https://juctyediqqdcocglpsdx.supabase.co
+    description: Supabase backend for data storage
+
+security:
+  - BearerAuth: []
+
+paths:
+  /listings:
+    get:
+      summary: Retrieve property listings
+      description: Get available properties with filtering options
+      operationId: getListings
+      parameters:
+        - name: checkIn
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Check-in date
+        - name: checkOut
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Check-out date
+        - name: guests
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: Number of guests
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Listing'
+        '400':
+          description: Bad request
+        '500':
+          description: Server error
+
+  /quotes:
+    post:
+      summary: Create booking quote
+      description: Generate a pricing quote for a property booking
+      operationId: createQuote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - listingId
+                - checkInDateLocalized
+                - checkOutDateLocalized
+                - guestsCount
+              properties:
+                listingId:
+                  type: string
+                  description: Property listing ID
+                checkInDateLocalized:
+                  type: string
+                  format: date
+                  description: Check-in date
+                checkOutDateLocalized:
+                  type: string
+                  format: date
+                  description: Check-out date
+                guestsCount:
+                  type: integer
+                  minimum: 1
+                  description: Number of guests
+      responses:
+        '200':
+          description: Quote created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quote'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Server error
+
+  /reservations:
+    post:
+      summary: Create instant reservation
+      description: Complete a booking reservation
+      operationId: createReservation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationRequest'
+      responses:
+        '200':
+          description: Reservation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Server error
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Listing:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Unique listing identifier
+        title:
+          type: string
+          description: Property title
+        prices:
+          type: object
+          properties:
+            basePrice:
+              type: number
+              description: Base nightly rate
+            cleaningFee:
+              type: number
+              description: Cleaning fee
+        bedrooms:
+          type: integer
+          description: Number of bedrooms
+        bathrooms:
+          type: integer
+          description: Number of bathrooms
+        maxOccupancy:
+          type: integer
+          description: Maximum guest capacity
+      required:
+        - _id
+        - title
+        - prices
+
+    Quote:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Quote identifier
+        totalPrice:
+          type: number
+          description: Total booking price
+        priceBreakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+              value:
+                type: number
+        currency:
+          type: string
+          description: Currency code
+      required:
+        - _id
+        - totalPrice
+
+    ReservationRequest:
+      type: object
+      properties:
+        quoteId:
+          type: string
+          description: Quote identifier
+        guestData:
+          type: object
+          properties:
+            guest:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+              required:
+                - firstName
+                - lastName
+                - email
+                - phone
+          required:
+            - guest
+      required:
+        - quoteId
+        - guestData
+
+    ReservationResponse:
+      type: object
+      properties:
+        confirmationCode:
+          type: string
+          description: Booking confirmation code
+        _id:
+          type: string
+          description: Reservation identifier
+        status:
+          type: string
+          description: Reservation status
+      required:
+        - confirmationCode

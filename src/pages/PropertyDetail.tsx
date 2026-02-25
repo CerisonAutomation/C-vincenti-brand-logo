@@ -1,4 +1,4 @@
-import { useState, useMemo, lazy, Suspense } from 'react';
+import { useState, useMemo, lazy, Suspense, memo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -37,7 +37,7 @@ const AMENITY_CATEGORIES: Record<string, string[]> = {
   'Work': ['LAPTOP_FRIENDLY_WORKSPACE'],
 };
 
-export default function PropertyDetail() {
+function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const urlCheckIn = searchParams.get('checkIn') || '';
@@ -85,33 +85,7 @@ export default function PropertyDetail() {
     const ungrouped = property.amenities.filter(a => !assigned.has(a));
     if (ungrouped.length > 0) groups['Other'] = ungrouped;
     return groups;
-  }, [property?.amenities]);
-
-  // ── Loading state ──
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="section-container py-8">
-          <Skeleton className="h-5 w-32 mb-6" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 rounded-2xl overflow-hidden mb-8">
-            <Skeleton className="md:col-span-2 md:row-span-2 aspect-[4/3] md:aspect-auto h-[400px]" />
-            <Skeleton className="hidden md:block aspect-[4/3]" />
-            <Skeleton className="hidden md:block aspect-[4/3]" />
-            <Skeleton className="hidden md:block aspect-[4/3]" />
-            <Skeleton className="hidden md:block aspect-[4/3]" />
-          </div>
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <Skeleton className="h-10 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-            <Skeleton className="h-96 rounded-2xl" />
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  }, [property]);
 
   // ── Error / Not found ──
   if (!property) {
@@ -730,3 +704,5 @@ export default function PropertyDetail() {
     </Layout>
   );
 }
+
+export default memo(PropertyDetail);

@@ -1,23 +1,37 @@
 import React from 'react';
 import { BRAND_NAME, BRAND_LABEL } from '@/lib/brand';
+import logoWordmark from '@/assets/logo-wordmark.png';
 
 interface LogoProps {
   className?: string;
   subText?: string;
   size?: 'sm' | 'md' | 'lg';
   onClick?: () => void;
+  variant?: 'default' | 'minimal' | 'elegant';
+  animated?: boolean;
 }
 
 export const Logo: React.FC<LogoProps> = ({
   className = '',
   subText = BRAND_LABEL,
   size = 'md',
-  onClick
+  onClick,
+  variant = 'default',
+  animated = true,
 }) => {
   const sizeClasses = {
-    sm: { main: 'text-[22px] sm:text-[26px]', sub: 'text-[5.5px] sm:text-[6.5px] mt-0.5' },
-    md: { main: 'text-[32px] sm:text-[38px]', sub: 'text-[7px] sm:text-[8px] mt-1' },
-    lg: { main: 'text-[48px] sm:text-[58px]', sub: 'text-[9px] sm:text-[10px] mt-1.5' }
+    sm: {
+      width: 'w-32',
+      height: 'h-10'
+    },
+    md: {
+      width: 'w-48',
+      height: 'h-14'
+    },
+    lg: {
+      width: 'w-64',
+      height: 'h-20'
+    }
   };
 
   const handleLogoClick = () => {
@@ -31,32 +45,33 @@ export const Logo: React.FC<LogoProps> = ({
   return (
     <div
       onClick={handleLogoClick}
-      className={`flex flex-col items-start cursor-pointer group transition-all duration-500 select-none ${className}`}
+      className={`group flex flex-col items-center cursor-pointer select-none transition-all duration-700 hover:scale-[1.02] ${className}`}
       role="button"
       aria-label={`${BRAND_NAME} Home`}
     >
-      <span
-        className={`text-foreground leading-none group-hover:text-primary transition-colors duration-500 ${sizeClasses[size].main}`}
-        style={{
-          fontFamily: "'Cormorant Garamond', serif",
-          fontStyle: 'italic',
-          fontWeight: 300,
-          letterSpacing: '0.01em',
-        }}
-      >
-        {BRAND_NAME}
-      </span>
-      <span
-        className={`text-primary/60 ${sizeClasses[size].sub}`}
-        style={{
-          fontFamily: "'Raleway', sans-serif",
-          fontWeight: 300,
-          letterSpacing: '0.35em',
-          textTransform: 'uppercase',
-        }}
-      >
-        {subText}
-      </span>
+      {/* Main logo image */}
+      <img
+        src={logoWordmark}
+        alt={`${BRAND_NAME} ${subText}`}
+        className={`${sizeClasses[size].width} ${sizeClasses[size].height} object-contain transition-all duration-500 group-hover:brightness-110 ${
+          animated ? 'group-hover:transform group-hover:rotate-[-0.5deg]' : ''
+        }`}
+        loading="eager"
+      />
+
+      {/* Optional decorative elements for elegant variant */}
+      {variant === 'elegant' && (
+        <>
+          <div className="relative mt-2">
+            <div className="w-8 h-px bg-gradient-to-r from-transparent via-primary to-transparent opacity-60" />
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full opacity-40" />
+          </div>
+          <div className="w-1 h-1 bg-primary/40 rounded-full opacity-60 mt-1 group-hover:opacity-100 transition-opacity duration-300" />
+        </>
+      )}
+
+      {/* Hover effect accent line */}
+      <div className="h-px w-0 group-hover:w-full bg-gradient-to-r from-primary/0 via-primary/60 to-primary/0 transition-all duration-700 mt-2" />
     </div>
   );
 };

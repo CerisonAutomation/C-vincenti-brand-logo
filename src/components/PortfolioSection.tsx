@@ -1,44 +1,53 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 import { Users, BedDouble, Bath, ArrowRight } from "lucide-react";
-import propertyFives from "@/assets/property-fives.jpg";
-import propertyUrsula from "@/assets/property-ursula.jpg";
-import propertyPenthouse from "@/assets/property-penthouse.jpg";
-
-const PROPERTIES = [
-  {
-    img: propertyFives,
-    title: "The Fives Apartments",
-    location: "St Julian's, Malta",
-    type: "Apartment",
-    guests: 6,
-    beds: 3,
-    baths: 3,
-    price: "€180",
-  },
-  {
-    img: propertyUrsula,
-    title: "123 St Ursula Street",
-    location: "Valletta, Malta",
-    type: "Apartment",
-    guests: 4,
-    beds: 1,
-    baths: 2,
-    price: "€150",
-  },
-  {
-    img: propertyPenthouse,
-    title: "St. Julian's Penthouse",
-    location: "San Ġiljan, Malta",
-    type: "Penthouse",
-    guests: 4,
-    beds: 2,
-    baths: 2,
-    price: "€155",
-  },
-];
 
 export default function PortfolioSection() {
+  const { data: properties, isLoading, error } = useQuery<Database['public']['Tables']['cms_properties']['Row'][]>({
+    queryKey: ['portfolio-properties'],
+    queryFn: async (): Promise<Database['public']['Tables']['cms_properties']['Row'][]> => {
+      const { data, error } = await supabase
+        .from('cms_properties')
+        .select('*')
+        .eq('available', true)
+        .order('created_at', { ascending: true })
+        .limit(6); // Show up to 6 properties
+
+      if (error) throw error;
+      return (data as Database['public']['Tables']['cms_properties']['Row'][]) || [];
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <section id="portfolio" className="py-16 sm:py-20 bg-card/30">
+        <div className="section-container">
+          <div className="min-h-[400px] flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section id="portfolio" className="py-16 sm:py-20 bg-card/30">
+        <div className="section-container">
+          <div className="min-h-[400px] flex items-center justify-center">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading Properties</h3>
+              <p className="text-sm text-muted-foreground">Unable to load property information.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="portfolio" className="py-16 sm:py-20 bg-card/30">
       <div className="section-container">
@@ -58,9 +67,9 @@ export default function PortfolioSection() {
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {PROPERTIES.map((p, i) => (
+          {properties?.map((p, i) => (
             <motion.div
-              key={p.title}
+              key={p.id}
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -69,7 +78,7 @@ export default function PortfolioSection() {
             >
               <div className="aspect-[16/10] overflow-hidden relative">
                 <img
-                  src={p.img}
+                  src={p.image_url || '/api/placeholder/400/300'}
                   alt={p.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
@@ -82,7 +91,7 @@ export default function PortfolioSection() {
                 <h3 className="font-serif text-base font-semibold text-foreground group-hover:text-primary transition-colors mb-1">
                   {p.title}
                 </h3>
-                <p className="text-xs text-muted-foreground mb-3">{p.location} · {p.type}</p>
+                <p className="text-xs text-muted-foreground mb-3">{p.location}</p>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Users size={12} /> {p.guests}</span>
                   <span className="flex items-center gap-1"><BedDouble size={12} /> {p.beds} Bed</span>

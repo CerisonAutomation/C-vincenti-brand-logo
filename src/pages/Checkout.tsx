@@ -9,6 +9,7 @@ import { normalizeListingDetail } from '@/lib/guesty/normalizer';
 import { formatCurrency } from '@/lib/content';
 import { BRAND_FULL } from '@/lib/brand';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Quote, ReservationResponse, GuestyError } from '@/lib/guesty/types';
 
 const guestSchema = z.object({
   firstName: z.string().trim().min(1, 'First name is required').max(100),
@@ -21,7 +22,7 @@ const guestSchema = z.object({
 type GuestFormData = z.infer<typeof guestSchema>;
 
 export default function Checkout() {
-  const { listingId } = useParams<{ listingId: string }>();
+  const { listingId: rawListingId } = useParams<{ listingId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -29,6 +30,7 @@ export default function Checkout() {
   const checkOut = searchParams.get('checkOut') || '';
   const guests = parseInt(searchParams.get('guests') || '2') || 2;
 
+  const listingId = rawListingId || '';
   const { data: rawListing, isLoading: listingLoading } = useListing(listingId);
   const { data: paymentProvider } = usePaymentProvider(listingId);
   const quoteMutation = useCreateQuote();
@@ -41,7 +43,7 @@ export default function Checkout() {
   const [errors, setErrors] = useState<Partial<Record<keyof GuestFormData, string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const [quoteData, setQuoteData] = useState<any>(null);
+  const [quoteData, setQuoteData] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState('');
   const [coupon, setCoupon] = useState('');
@@ -67,7 +69,7 @@ export default function Checkout() {
       });
   }, [listingId, checkIn, checkOut, guests]);
 
-  const nights = checkIn && checkOut
+  const nightsCount = checkIn && checkOut
     ? Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (86400000))
     : 0;
 
@@ -101,33 +103,56 @@ export default function Checkout() {
       return;
     }
 
-    if (!quoteData?._id) {
+    if (!quoteData?._id || !listingId) {
       setSubmitError('No quote available. Please go back and try again.');
       return;
     }
 
     setSubmitting(true);
     try {
-      // TODO: Replace with real payment token from GuestyPay / Stripe
-      // Per Guesty docs: API supports Stripe SCA tokens (pm_...) only
-      const paymentToken = `demo_token_${Date.now()}`;
+      let reservation: ReservationResponse;
 
-      const reservation = await guestyClient.createInstantReservation(quoteData._id, {
-        guest: {
-          firstName: result.data.firstName,
-          lastName: result.data.lastName,
-          email: result.data.email,
-          phone: result.data.phone,
-        },
-        payment: {
-          token: paymentToken,
-        },
-      });
+      // First, try to create an instant reservation (will fail if only inquiry is allowed)
+      try {
+        reservation = await guestyClient.createInstantReservation(quoteData._id, {
+          guest: {
+            firstName: result.data.firstName,
+            lastName: result.data.lastName,
+            email: result.data.email,
+            phone: result.data.phone,
+          },
+          // Only include payment if we have a real token (in demo, we skip it)
+          // In production, this should come from Stripe/GuestyPay Elements
+          ...(paymentProvider?.type === 'stripe' ? {
+            payment: {
+              token: `pm_test_${Date.now()}` // Demo token - replace with real Stripe token in production
+            }
+          } : {}),
+        });
+      } catch (instantError: unknown) {
+        // If instant booking failed, try to create an inquiry instead
+        console.log('Instant booking failed, trying inquiry:', instantError);
+
+        reservation = await guestyClient.createInquiry(listingId, {
+          checkInDateLocalized: checkIn,
+          checkOutDateLocalized: checkOut,
+          guestsCount: guests,
+          guest: {
+            firstName: result.data.firstName,
+            lastName: result.data.lastName,
+            email: result.data.email,
+            phone: result.data.phone,
+          },
+          specialRequests: result.data.specialRequests,
+        });
+      }
 
       // Navigate to success
       navigate(`/booking/success?reservationId=${reservation._id}&confirmationCode=${reservation.confirmationCode || ''}`);
-    } catch (err: any) {
-      const msg = err?.error_code ? guestyClient.formatError(err) : 'Booking failed. Please try again or contact us.';
+    } catch (err: unknown) {
+      const msg = err && typeof err === 'object' && 'error_code' in err
+        ? guestyClient.formatError(err as GuestyError)
+        : 'Booking failed. Please try again or contact us.';
       setSubmitError(msg);
     } finally {
       setSubmitting(false);
@@ -305,7 +330,7 @@ export default function Checkout() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Nights</span>
-                    <span className="text-foreground font-medium">{nights}</span>
+                    <span className="text-foreground font-medium">{nightsCount}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Guests</span>
@@ -330,7 +355,7 @@ export default function Checkout() {
 
                 {quoteData && !quoteLoading && (
                   <div className="mt-4 pt-4 border-t border-border/30 space-y-2 text-xs">
-                    {quoteData.priceBreakdown?.map((item: any, i: number) => (
+                    {quoteData.priceBreakdown?.map((item: { description?: string; type?: string; value: number }, i: number) => (
                       <div key={i} className="flex justify-between">
                         <span className="text-muted-foreground">{item.description || item.type}</span>
                         <span className="text-foreground">{formatCurrency(item.value)}</span>

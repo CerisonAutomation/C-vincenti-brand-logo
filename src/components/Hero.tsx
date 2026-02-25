@@ -10,9 +10,9 @@ interface HeroProps {
 
 export default function Hero({ onOpenWizard }: HeroProps) {
   return (
-    <section className="relative min-h-screen flex">
+    <section aria-label="Hero section with owner and guest services" className="relative min-h-screen flex">
       {/* ── LEFT: Institutional / Owner Services ── */}
-      <div className="relative w-full md:w-1/2 flex flex-col justify-between bg-background overflow-hidden min-h-[50vh] md:min-h-screen">
+      <div aria-label="Owner services section" className="relative w-full md:w-1/2 flex flex-col justify-between bg-background overflow-hidden min-h-[50vh] md:min-h-screen">
         {/* Subtle background image overlay */}
         <div className="absolute inset-0">
           <img src={heroMalta} alt="" className="w-full h-full object-cover opacity-[0.06]" aria-hidden="true" />
@@ -66,7 +66,7 @@ export default function Hero({ onOpenWizard }: HeroProps) {
       </div>
 
       {/* ── RIGHT: Residential / Guest Services ── */}
-      <div className="relative w-full md:w-1/2 flex flex-col justify-between overflow-hidden min-h-[50vh] md:min-h-screen">
+      <div aria-label="Guest services section" className="relative w-full md:w-1/2 flex flex-col justify-between overflow-hidden min-h-[50vh] md:min-h-screen">
         {/* Full background image */}
         <div className="absolute inset-0">
           <img
