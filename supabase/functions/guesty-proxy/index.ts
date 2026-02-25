@@ -164,36 +164,36 @@ serve(async (req) => {
       // BOOKING ENGINE API ENDPOINTS
       // ══════════════════════════════════════════════
 
-      // Search listings (per BE API docs: GET /me/listings with search params)
+      // Search listings (GET /listings)
       case 'search': {
         const params = url.searchParams.get('params') || '';
-        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings?fields=${LISTING_LIST_FIELDS}&${params}`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/listings?fields=${LISTING_LIST_FIELDS}&${params}`, 'GET', undefined, cors);
       }
 
-      // List my listings (GET /me/listings)
+      // List listings (GET /listings)
       case 'listings': {
         const params = url.searchParams.get('params') || '';
-        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings?fields=${LISTING_LIST_FIELDS}&${params}`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/listings?fields=${LISTING_LIST_FIELDS}&${params}`, 'GET', undefined, cors);
       }
 
-      // Get listing detail (GET /me/listings/:id)
+      // Get listing detail (GET /listings/:id)
       case 'listing': {
         const id = url.searchParams.get('id');
         if (!id) return errorResponse('MISSING_PARAM', 'Missing listing id', 400, cors);
-        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings/${id}?fields=${LISTING_DETAIL_FIELDS}`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/listings/${id}?fields=${LISTING_DETAIL_FIELDS}`, 'GET', undefined, cors);
       }
 
       // Cities
       case 'cities':
-        return proxyRequest(BE_API_BASE, getBEToken, '/me/listings/cities', 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, '/listings/cities', 'GET', undefined, cors);
 
-      // Calendar availability (GET /me/listings/:id/calendar)
+      // Calendar availability (GET /listings/:id/calendar)
       case 'calendar': {
         const id = url.searchParams.get('id');
         const from = url.searchParams.get('from');
         const to = url.searchParams.get('to');
         if (!id || !from || !to) return errorResponse('MISSING_PARAM', 'Missing calendar params', 400, cors);
-        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings/${id}/calendar?from=${from}&to=${to}`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/listings/${id}/calendar?from=${from}&to=${to}`, 'GET', undefined, cors);
       }
 
       // ── Reservation Quote Flow (per BE API docs) ──
@@ -223,35 +223,35 @@ serve(async (req) => {
         return proxyRequest(BE_API_BASE, getBEToken, `/reservations/quotes/${quoteId}/instant`, 'POST', body, cors);
       }
 
-      // Create inquiry (POST /me/reservations/inquiry)
+      // Create inquiry (POST /reservations/inquiry)
       case 'inquiry':
-        return proxyRequest(BE_API_BASE, getBEToken, '/me/reservations/inquiry', 'POST', body, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, '/reservations/inquiry', 'POST', body, cors);
 
-      // Reviews (GET /me/reviews)
+      // Reviews (GET /reviews)
       case 'reviews': {
         const params = url.searchParams.get('params') || '';
-        return proxyRequest(BE_API_BASE, getBEToken, `/me/reviews${params ? `?${params}` : ''}`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/reviews${params ? `?${params}` : ''}`, 'GET', undefined, cors);
       }
 
-      // Upsell fees (GET /me/listings/:id/upsell-fees)
+      // Upsell fees (GET /listings/:id/upsell-fees)
       case 'upsell-fees': {
         const id = url.searchParams.get('id');
         if (!id) return errorResponse('MISSING_PARAM', 'Missing id', 400, cors);
-        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings/${id}/upsell-fees`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/listings/${id}/upsell-fees`, 'GET', undefined, cors);
       }
 
-      // Payment provider (GET /me/listings/:id/payment-provider)
+      // Payment provider (GET /listings/:id/payment-provider)
       case 'payment-provider': {
         const id = url.searchParams.get('id');
         if (!id) return errorResponse('MISSING_PARAM', 'Missing id', 400, cors);
-        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings/${id}/payment-provider`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/listings/${id}/payment-provider`, 'GET', undefined, cors);
       }
 
-      // Rate plans (GET /me/listings/:id/rate-plans) - V3 Booking Flow
+      // Rate plans (GET /listings/:id/rate-plans) - V3 Booking Flow
       case 'rate-plans': {
         const id = url.searchParams.get('id');
         if (!id) return errorResponse('MISSING_PARAM', 'Missing id', 400, cors);
-        return proxyRequest(BE_API_BASE, getBEToken, `/me/listings/${id}/rate-plans`, 'GET', undefined, cors);
+        return proxyRequest(BE_API_BASE, getBEToken, `/listings/${id}/rate-plans`, 'GET', undefined, cors);
       }
 
       // Upsell fees update in quote (POST /reservations/quotes/:quoteId/upsell-fees)
@@ -303,8 +303,9 @@ serve(async (req) => {
       default:
         return errorResponse('UNKNOWN_ACTION', `Unknown action: ${action}`, 400, cors);
     }
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('Guesty proxy error:', err);
-    return errorResponse('INTERNAL_ERROR', err.message || 'Internal error', 500, corsHeaders(req.headers.get('origin')));
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return errorResponse('INTERNAL_ERROR', message, 500, corsHeaders(req.headers.get('origin')));
   }
 });
